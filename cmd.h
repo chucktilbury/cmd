@@ -6,22 +6,6 @@
 // Opaque handle for command line.
 typedef void* CmdLine;
 
-// Flags are a bitmask.
-typedef enum {
-    // just a place holder
-    CMD_NONE = 0x00,
-    // if an option is not required, then it is optional.
-    CMD_REQD = 0x01,
-    // allow but not require multiple items.
-    // note that lists and toggles are mutually exclusive.
-	CMD_LIST = 0x02,
-    // these specify toggles. no argumets are accepted.
-    CMD_FALSE = 0x04,
-    CMD_TRUE = 0x08,
-    // If the parameter has been seen on the command line then this is set.
-    CMD_SEEN = 0x10,
-} CmdFlags;
-
 // Create the command line data structure.
 CmdLine create_cmd_line(const char* description);
 
@@ -54,5 +38,7 @@ void parse_cmd_line(CmdLine cl, int argc, const char** argv);
 // is not a list, then it's ignored.
 const char* get_cmd_line(CmdLine cl, const char* name, bool flag);
 
+// Print out the current state of the data structures for debugging.
+void dump_cmd_line(CmdLine cl);
 
 #endif /* _CMD_H */
