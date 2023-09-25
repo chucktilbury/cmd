@@ -6,16 +6,16 @@ This is a simple library that is intended to be used with a language compiler. I
 
 ## Supported features
 
-* A parameter name is the string on the command line that causes the parser to perform some action or that introduces an argument. Parameter names always start with one or more dashes (-) and it can have one or more alphabetical characters or dashes. No digits or other punctuation characters are allowed. 
-* The general format of a command parameter is ```-name value```. Also ```-name=value```, ```-name:value``` are valid and equivalent. Any punctuation character except ```-``` is recognized as a name/value separator.  A name may have a ```-``` embedded in it, such as ```--some-name``` and be recognized as a valid single parameter name.
-  * A parameter name is matched by its length, as well as its content. For example, a parameter named ``-a`` is different from a parameter named ``-abc``. When this is done, the longest match is used. 
-  * A value can be any valid string that can be passed on the command line. For example, ``-x="a description string"`` is valid for most operating systems and will be passed as a single string to the command line parser. However, the line ``-x=a description string`` will be passed to the program as three separate strings by most operating systems and there is no way to guess what the true intent of the user was. 
+* A parameter name is the string on the command line that causes the parser to perform some action or that introduces an argument. Parameter names always start with one or more dashes (-) and it can have one or more alphabetical characters or dashes. No digits or other punctuation characters are allowed.
+* The general format of a command parameter is ``-name value``. Also ``-name=value``, ``-name:value`` are valid and equivalent. Any punctuation character except ```-``` is recognized as a name/value separator.  A name may have a ```-``` embedded in it, such as ``--some-name`` and be recognized as a valid single parameter name.
+  * A parameter name is matched by its length, as well as its content. For example, a parameter named ``-a`` is different from a parameter named ``-abc``. When this is done, the longest match is used.
+  * A value can be any valid string that can be passed on the command line. For example, ``-x="a description string"`` is valid for most operating systems and will be passed as a single string to the command line parser. However, the line ``-x=a description string`` will be passed to the program as three separate strings by most operating systems and there is no way to guess what the true intent of the user was.
 * All values are handled as strings. If the developer wants to treat a value as, for example a number, then they are responsible for doing the conversion according to their needs.
 * Required and optional parameters. The default is optional. It must be marked as required if that is intended.
-* Parameter arguments in the form of ```-x=123```, ```-x:123```, ``-x123`` and ``-x 123`` are equivalent. However, something like ``-xabc`` can create an ambiguity. The parser resolves this by accepting the longest possible match. So if the parser knows about ``-x`` and ``-xa``, then the command line argument will be equivalent to ``-xa=bc``, rather than ``-x=abc``. But a command argument like ``-xbcd`` will parse as ``-x=bcd``.
-* An option list can have one of 2 forms. 
-  * In the first form, the list is created in the application without a parameter name. In this case, any stray string found on the command line that does not have a ```-``` in front of it will be added to the list. For example, a list of files, such as ```gcc``` or ```clang``` accepts.
-  * In the second form, the list is connected with a parameter name and separated by a comma. For example, ```-x:opt1,opt2,opt3```. When this format is used, then the parameter cannot contain spaces adjacent to the comma character, but spaces can be embedded in an option using quotes, according to the command line rules of the operating system.
+* Parameter arguments in the form of ``-x=123``, ``-x:123``, ``-x123`` and ``-x 123`` are equivalent. However, something like ``-xabc`` can create an ambiguity. The parser resolves this by accepting the longest possible match. So if the parser knows about ``-x`` and ``-xa``, then the command line argument will be equivalent to ``-xa=bc``, rather than ``-x=abc``. But a command argument like ``-xbcd`` will parse as ``-x=bcd``.
+* An option list can have one of 2 forms.
+  * In the first form, the list is created in the application without a parameter name. In this case, any stray string found on the command line that does not have a ``-`` in front of it will be added to the list. For example, a list of files, such as ``gcc`` or ``clang`` accepts.
+  * In the second form, the list is connected with a parameter name and separated by a comma. For example, ``-x:opt1,opt2,opt3``. When this format is used, then the parameter cannot contain spaces adjacent to the comma character, but spaces can be embedded in an option using quotes, according to the command line rules of the operating system.
 * The parameters ``-h``, ``--help``, and ``-?`` are reserved and print the help screen and exit. Note that the parameter ``-hq`` or ``-hx`` are valid stand-alone parameters like any other.
 
 ## Unsupported features
@@ -71,12 +71,12 @@ void reset_cmd(CmdLine cmd, const char* name);
 
 // Get the command line string. If the value is defined as a boolean,
 // then return NULL for false or a pointer to a blank string for true.
-// Otherwise, if the value is defined as a string, then return the 
+// Otherwise, if the value is defined as a string, then return the
 // string if it is defined, or NULL if it is not. If the command was
 // defined as a list then return the list iteration.
 const char* get_cmd(CmdLine cmd, const char* name);
-```
 
+```
 
 
 

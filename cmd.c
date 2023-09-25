@@ -10,93 +10,6 @@
 #include "cmd.h"
 #include "mem.h"
 
-// string list.
-typedef struct {
-    void** list;
-    int cap;
-    int len;
-    int idx;
-} _ptr_lst_t;
-
-static _ptr_lst_t* create_ptr_lst() {
-
-    _ptr_lst_t* ptr = _ALLOC_T(_ptr_lst_t);
-    ptr->cap = 1 << 3;
-    ptr->len = 0;
-    ptr->idx = 0;
-    ptr->list = _ALLOC_ARRAY(const char*, ptr->cap);
-
-    return ptr;
-}
-
-static void destroy_ptr_lst(_ptr_lst_t* lst) {
-
-    if(lst != NULL) {
-        _FREE(lst->list);
-        _FREE(lst);
-    }
-}
-
-// Add a pointer to the pointer list. There is no sense of allocating memory
-// for the added pointer. The caller is responsible for managing the memory.
-static void add_ptr_lst(_ptr_lst_t* lst, void* ptr) {
-
-    assert(lst != NULL);
-    if(lst->len+1 > lst->cap) {
-        lst->cap <<= 1;
-        lst->list = _REALLOC_ARRAY(lst->list, void*, lst->cap);
-    }
-
-    lst->list[lst->len] = ptr;
-    lst->len++;
-}
-
-// Reset the iterator to the beginning of the list. There is no return value.
-static void reset_ptr_lst(_ptr_lst_t* lst) {
-
-    assert(lst != NULL);
-    lst->idx = 0;
-}
-
-// Iterate pointer list. When there are no more items to iterate, then return
-// a NULL pointer.
-static const char* iterate_ptr_lst(_ptr_lst_t* lst) {
-
-    assert(lst != NULL);
-    const char* ptr = NULL;
-
-    if(lst->idx < lst->len) {
-        ptr = lst->list[lst->idx];
-        lst->idx++;
-    }
-
-    return ptr;
-}
-
-// Specialize the ptr list to be a str list.
-typedef _ptr_lst_t _str_lst_t;
-
-static _str_lst_t* create_str_lst() {
-    return (_str_lst_t*)create_ptr_lst();
-}
-
-static void destroy_str_lst(_str_lst_t* lst) {
-    for(int x = 0; x < lst->len; x++)
-        _FREE(lst->list[x]);
-    destroy_ptr_lst(lst);
-}
-
-static void add_str_lst(_str_lst_t* lst, const char* str) {
-    add_ptr_lst(lst, (void*)_DUP_STR(str));
-}
-
-static void reset_str_lst(_str_lst_t* lst) {
-    reset_ptr_lst(lst);
-}
-
-static const char* iterate_str_lst(_str_lst_t* lst) {
-    return (const char*)iterate_ptr_lst(lst);
-}
 
 // types of values
 typedef enum {
@@ -106,25 +19,6 @@ typedef enum {
     CMD_FNUM,
     CMD_LIST,
 } _cmd_type_t;
-
-// Individual command line item.
-typedef struct {
-    _cmd_type_t type;       // type of arg in the union
-    const char* parm;       // string recognized from the command line
-    const char* name;       // name to access the param by
-    const char* help;       // help string for this item
-    // status
-    bool seen;              // was seen by the command parser
-    bool required;          // parameter is required
-    // payload
-    union {
-        _str_lst_t* slist;  // parameter is a list of strings.
-        const char* str;    // parameter is a string
-        bool bval;          // parameter is a boolean
-        long int inum;      // parameter is an integer
-        double fnum;        // parameter is a float
-    } value;
-} _cmd_item_t;
 
 // Specialize the ptr list to be a command item list.
 typedef _ptr_lst_t _ci_lst_t;
