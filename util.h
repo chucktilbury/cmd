@@ -2,6 +2,7 @@
 #define _UTIL_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 //----------------------------------------------
 // mem.c
@@ -31,25 +32,22 @@ typedef struct {
     int cap;
     int len;
     int idx;
-} PtrLst;
+} PtrList;
 
-PtrLst* create_ptr_lst();
-void destroy_ptr_lst(PtrLst* h);
-void add_ptr_lst(PtrLst* h, void* ptr);
-void reset_ptr_lst(PtrLst* h);
-const char* iterate_ptr_lst(PtrLst* h);
+PtrList* create_ptr_list();
+void destroy_ptr_list(PtrList* h);
+void add_ptr_list(PtrList* h, void* ptr);
+void reset_ptr_list(PtrList* h);
+void* iterate_ptr_list(PtrList* h);
+void push_ptr_list(PtrList* h, void* ptr);
+void* peek_ptr_list(PtrList* h);
+void* pop_ptr_list(PtrList* h);
 
 //--------------------------------------------------------
 // str.c
 //--------------------------------------------------------
 // Specialize the ptr list to be a str list.
-typedef PtrLst StrLst;
-
-StrLst* create_str_lst();
-void destroy_str_lst(StrLst* lst);
-void add_str_lst(StrLst* lst, const char* str);
-void reset_str_lst(StrLst* lst);
-const char* iterate_str_lst(StrLst* lst);
+typedef PtrList StrList;
 
 typedef struct {
     char* buf;
@@ -57,6 +55,15 @@ typedef struct {
     int len;
     int idx;
 } Str;
+
+StrList* create_str_list();
+void destroy_str_list(StrList* lst);
+void add_str_list(StrList* lst, Str* str);
+void reset_str_list(StrList* lst);
+Str* iterate_str_list(StrList* lst);
+void push_str_list(StrList* lst, Str* str);
+Str* peek_str_list(StrList* lst);
+Str* pop_str_list(StrList* lst);
 
 Str* create_string(const char* str);
 Str* create_string_fmt(const char* str, ...);
@@ -67,6 +74,25 @@ void add_string_fmt(Str* ptr, const char* str, ...);
 void reset_string(Str* ptr);
 int iterate_string(Str* ptr);
 const char* raw_string(Str* ptr);
+int comp_str(Str* s1, Str* s2);
+int comp_str_const(Str* s1, const char* s2);
+
+//-----------------------------------------------------------------
+// hash.c
+//-----------------------------------------------------------------
+typedef void* HashTable;
+
+typedef enum {
+    HASH_OK,
+    HASH_DUP,
+    HASH_NF,
+} HashResult;
+
+HashTable create_hash();
+void destroy_hash(HashTable table);
+HashResult insert_hash(HashTable table, const char* key, void* data, size_t size);
+HashResult find_hash(HashTable tab, const char* key, void* data, size_t size);
+HashResult remove_hash(HashTable tab, const char* key);
 
 //-------------------------------------------------------------
 // cmd.c
@@ -77,8 +103,9 @@ typedef enum {
     CMD_NONE = 0x00,
     CMD_REQD = 0x01,
     CMD_LIST = 0x02,
-    CMD_BOOL = 0x04,
-    CMD_SEEN = 0x08,
+    CMD_STR  = 0x04,
+    CMD_BOOL = 0x08,
+    CMD_SEEN = 0x10,
 } CmdFlag;
 
 // Opaque handle for command line.
@@ -99,9 +126,10 @@ void destroy_cmd_line(CmdLine cl);
 // If this is called with a NULL param and CMD_LIST as a
 // flag, then random strings (like file names) will be
 // stored under the name.
-void add_cmd_line(CmdLine cl,
+void add_cmd(CmdLine cl,
                 const char* parm,
                 const char* name,
+                const char* help,
                 const char* dvalue,
                 unsigned char flags);
 
@@ -109,12 +137,11 @@ void add_cmd_line(CmdLine cl,
 // the program if there is an error.
 void parse_cmd_line(CmdLine cl, int argc, const char** argv);
 
-// Iterate the named command parameter. If it is not a list, then
-// return the same value upon multiple calls. Otherwise, iterate the
-// list and return NULL after the last item. If the flag is set and
-// the item is a list, then the iterator is reset. If the parameter
-// is not a list, then it's ignored.
-const char* get_cmd_line(CmdLine cl, const char* name, unsigned char flag);
+// retrieve the value stored by the name, or publish an error.
+Str* get_cmd_str(CmdLine cl, const char* name);
+StrList* get_cmd_list(CmdLine cl, const char* name);
+bool get_cmd_bool(CmdLine cl, const char* name);
+CmdFlag get_cmd_flag(CmdLine cl, const char* name);
 
 // Print out the current state of the data structures for debugging.
 void dump_cmd_line(CmdLine cl);

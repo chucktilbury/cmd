@@ -7,182 +7,114 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "cmd.h"
-#include "mem.h"
+#include "util.h"
 
-
-// types of values
-typedef enum {
-    CMD_STR,
-    CMD_BOOL,
-    CMD_INUM,
-    CMD_FNUM,
-    CMD_LIST,
-} _cmd_type_t;
-
-// Specialize the ptr list to be a command item list.
-typedef _ptr_lst_t _ci_lst_t;
-
-// Command line interface struct.
+// Individual command line item.
 typedef struct {
-    _ci_lst_t* list;        // dynamic array of _cmd_item_t
-    const char* description;// description.
-    const char* fname;      // program file name (e.g. argv[0])
-} _cmd_line_t;
+    const char* parm;       // string recognized from the command line
+    const char* name;       // name to access the param by
+    const char* help;       // help string for this item
+    CmdFlag flag;           // Flags controling the behavior of this item
+    // all parameters are a list. A str is a single item.
+    StrList* list;
+    // A boolean value is always initialized to false and it set to true
+    // if it's found in the command line.
+    bool bval;
+} CmdItem;
 
-static _cmd_item_t* alloc_cmd_item(const char* name,
-                        const char* parm,
-                        const char* help,
-                        bool reqd) {
+static CmdItem* create_item(const char* parm,
+                        const char* name, const char* help, CmdFlag flag) {
 
-    // NUlL paramters not allowed.
-    assert(name != NULL);
-    assert(parm != NULL);
-    assert(help != NULL);
+    CmdItem* ci = _ALLOC_T(CmdItem);
+    ci->parm = _DUP_STR(parm);
+    ci->name = _DUP_STR(name);
+    ci->help = _DUP_STR(help);
+    ci->flag = flag;
+    ci->bval = false;
 
-    // allocate the generic data structure
-    _cmd_item_t* ptr = _ALLOC_T(_cmd_item_t);
-    ptr->name = _DUP_STR(name);
-    ptr->parm = _DUP_STR(parm);
-    ptr->help = _DUP_STR(help);
-    ptr->seen = false;
-    ptr->required = reqd;
+    // don't allocate the list if it's a bool
+    if(!(flag & CMD_BOOL))
+        ci->list = create_str_list();
 
-    return ptr;
+    return ci;
 }
 
-// create a CI for a list of strings
-static _cmd_item_t* create_list_item(const char* name,
-                        const char* parm, const char* help,
-                        const char* value, bool reqd) {
+static void destroy_item(CmdItem* ptr) {
 
-    _cmd_item_t* ptr = alloc_cmd_item(name, parm, help, reqd);
+    if(ptr != NULL) {
+        _FREE(ptr->parm);
+        _FREE(ptr->name);
+        _FREE(ptr->help);
 
-    ptr->type = CMD_LIST;
-    ptr->value.slist = create_str_lst();
-    if(value != NULL)
-        add_str_lst(ptr->value.slist, value);
+        if(!(ptr->flag & CMD_BOOL))
+            destroy_str_list(ptr->list);
 
-    return ptr;
-}
-
-// create a CI for a boolean item. Boolean items are normally off and are
-// switched on if they are found on the cammand line.
-static _cmd_item_t* create_bool_item(const char* name,
-                        const char* parm, const char* help,
-                        bool value, bool reqd) {
-
-    _cmd_item_t* ptr = alloc_cmd_item(name, parm, help, reqd);
-
-    ptr->type = CMD_BOOL;
-    ptr->value.bval = value;
-
-    return ptr;
-}
-
-// create a CI for a single string item. The item can be NULL.
-static _cmd_item_t* create_str_item(const char* name,
-                        const char* parm, const char* help,
-                        const char* value, bool reqd) {
-
-    _cmd_item_t* ptr = alloc_cmd_item(name, parm, help, reqd);
-
-    ptr->type = CMD_STR;
-    if(value == NULL)
-        ptr->value.str = NULL;
-    else
-        ptr->value.str = _DUP_STR(value);
-
-    return ptr;
-}
-
-// create a CI for an integer, as defined by strtol(s, NULL, 10)
-static _cmd_item_t* create_int_item(const char* name,
-                        const char* parm, const char* help,
-                        long int value, bool reqd) {
-
-    _cmd_item_t* ptr = alloc_cmd_item(name, parm, help, reqd);
-
-    ptr->type = CMD_INUM;
-    ptr->value.inum = value;
-
-    return ptr;
-}
-
-// create a CI for a float, as defined by strtod(s, NULL).
-static _cmd_item_t* create_float_item(const char* name,
-                        const char* parm, const char* help,
-                        double value, bool reqd) {
-
-    _cmd_item_t* ptr = alloc_cmd_item(name, parm, help, reqd);
-
-    ptr->type = CMD_FNUM;
-    ptr->value.fnum = value;
-
-    return ptr;
-}
-
-static _ci_lst_t* create_ci_lst() {
-    return (_ci_lst_t*)create_ptr_lst();
-}
-
-static void destroy_ci_lst(_ci_lst_t* lst) {
-    for(int x = 0; x < lst->len; x++)
-        destroy_item(lst->list[x]);
-    destroy_ptr_lst(lst);
-}
-
-static void add_ci_lst(_ci_lst_t* lst, _cmd_item_t* ci) {
-    add_ptr_lst(lst, ci);
-}
-
-static void reset_ci_lst(_ci_lst_t* lst) {
-    reset_ptr_lst(lst);
-}
-
-static const char* iterate_ci_lst(_ci_lst_t* lst) {
-    return (const char*)iterate_ptr_lst(lst);
-}
-
-// destroy a CI item
-static void destroy_item(_cmd_item_t* ci) {
-
-    if(ci != NULL) {
-        _FREE(ci->name);
-        _FREE(ci->parm);
-        _FREE(ci->help);
-
-        if(ci->type == CMD_STR && ci->value.str != NULL)
-            _FREE(ci->value.str);
-        else if(ci->type == CMD_LIST && ci->value.slist != NULL)
-            destroy_str_lst(ci->value.slist);
-
-        _FREE(ci);
+        _FREE(ptr);
     }
 }
 
+typedef PtrList CmdItemList;
 
+static CmdItemList* create_ci_list() {
+    return (CmdItemList*)create_ptr_list();
+}
 
+static void destroy_ci_list(CmdItemList* h) {
 
+    if(h != NULL) {
+        for(int x = 0; x < h->len; x++)
+            destroy_item(h->list[x]);
+        destroy_ptr_list(h);
+    }
+}
 
+static void add_ci_list(CmdItemList* h, CmdItem* ptr) {
+    add_ptr_list(h, ptr);
+}
 
+static void reset_ci_list(CmdItemList* h) {
+    reset_ptr_list(h);
+}
 
+static CmdItem* iterate_ci_list(CmdItemList* h) {
+    return iterate_ptr_list(h);
+}
 
-
-
-
-
-
-
+typedef struct {
+    CmdItemList* items;
+    const char* desc;
+    const char* fname;
+} Cmd;
 
 // Show the help text and exit.
-static void show_help(_cmd_line_t* ptr) {
+static void show_help(Cmd* ptr) {
 
-    printf("%s: ", "blart!");
+    CmdItem* ci;
+
+    printf("%s use: %s\n", ptr->fname, ptr->desc);
+    reset_ci_list(ptr->items);
+    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+        printf("  %-5s ", ci->parm);
+        if(ci->flag & CMD_STR)
+            printf("STR   ");
+        else if(ci->flag & CMD_LIST)
+            printf("LIST  ");
+        else if(ci->flag & CMD_BOOL)
+            printf("(bool) ");
+        else
+            printf("       ");
+
+        if(ci->flag & CMD_REQD)
+            printf("%s (required)", ci->help);
+        else
+            printf("%s", ci->help);
+
+        printf("\n");
+    }
 }
 
 // Show an error and exit.
-static void show_error(_cmd_line_t* ptr, const char* fmt, ...) {
+static void show_error(Cmd* ptr, const char* fmt, ...) {
 
     va_list args;
 
@@ -198,349 +130,269 @@ static void show_error(_cmd_line_t* ptr, const char* fmt, ...) {
     exit(1);
 }
 
-// if the item exists, then return a pointer to is, else return NULL.
-static _cmd_item_t* find_item_by_name(_cmd_line_t* ptr, const char* name) {
+// find exact name
+CmdItem* find_by_name(Cmd* ptr, const char* name) {
 
-    for(int x = 0; x < ptr->len; x++) {
-        const char* str = ptr->list[x]->name;
-        if(strcmp(str, name) == 0)
-            return ptr->list[x];
+    assert(ptr != NULL);
+    assert(name != NULL);
+
+    CmdItem* ci;
+
+    reset_ci_list(ptr->items);
+    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+        if(!strcmp(ci->name, name))
+            return ci;
     }
 
     return NULL;
 }
 
-// select the longest partial match and return a pointer to it, else return
-// NULL.
-static _cmd_item_t* find_item_by_parm(_cmd_line_t* ptr, const char* parm) {
+// find by longest match
+CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
 
-    int len = 0;
-    int max = 0;
-    int idx = -1;
-    const char* str;
+    assert(ptr != NULL);
+    assert(parm != NULL);
 
-    for(int x = 0; x < ptr->len; x++) {
-        str = ptr->list[x]->parm;
-        len = strlen(str);
-        if(strncmp(str, parm, len) == 0) {
-            if(max < len) {
+    CmdItem* ci, *crnt = NULL;
+    int len = 0, max = 0;
+
+    reset_ci_list(ptr->items);
+    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+        len = strlen(ci->parm);
+        if(!strncmp(ci->parm, parm, len)) {
+            if(len > max) {
                 max = len;
-                idx = x;
+                crnt = ci;
             }
         }
     }
 
-    if(idx >= 0)
-        return ptr->list[idx];
-    else
-        return NULL;
+    return crnt;
 }
 
-// create and initialize a new parameter to be added to the
-// command line parser.
-static _cmd_item_t* create_item(const char* name,
-                const char* parm,
-                const char* def_val,
-                unsigned char flags) {
+/*************************************************************************
+ * API
+ */
 
-    _cmd_item_t* ptr = _ALLOC_T(_cmd_item_t);
-    ptr->cap = 1 << 3;
-    ptr->len = 0;
-    ptr->idx = 0;
-    ptr->value = _ALLOC_ARRAY(const char*, ptr->cap);
+CmdLine create_cmd_line(const char* description) {
 
-    if(parm != NULL)
-        ptr->parm = _DUP_STR(parm);
-    else
-        ptr->parm = _DUP_STR("");
-
-    if(name != NULL)
-        ptr->name = _DUP_STR(name);
-    else
-        ptr->name = _DUP_STR("");
-
-    if(def_val != NULL)
-        ptr->def = _DUP_STR(def_val);
-    else
-        ptr->def = _DUP_STR("");
-
-    ptr->flags = flags;
+    Cmd* ptr = _ALLOC_T(Cmd);
+    ptr->desc = _DUP_STR(description);
+    ptr->fname = NULL;
+    ptr->items = create_ci_list();
 
     return ptr;
 }
 
-// Destroy a _cmd_item_t*
-static void destroy_item(_cmd_item_t* ptr) {
+void destroy_cmd_line(CmdLine cl) {
 
-    if(ptr != NULL) {
-        if(ptr->parm != NULL)
-            _FREE(ptr->parm);
-        if(ptr->name != NULL)
-            _FREE(ptr->name);
-        if(ptr->def != NULL)
-            _FREE(ptr->def);
-
-        for(int x = 0; x < ptr->len; x++) {
-            _FREE(ptr->value[x]);
-        }
-
-        _FREE(ptr->value);
+    if(cl != NULL) {
+        Cmd* ptr = (Cmd*)cl;
+        _FREE(ptr->desc);
+        if(ptr->fname != NULL)
+            _FREE(ptr->fname);
+        destroy_ci_list(ptr->items);
         _FREE(ptr);
     }
 }
 
-// Add a value to the command value item from the command line.
-static void add_value(_cmd_item_t* ci, const char* val) {
-
-    if(ci->len+1 > ci->cap) {
-        ci->cap <<= 1;
-        ci->value = _REALLOC_ARRAY(ci->value, const char*, ci->cap);
-    }
-
-    ci->value[ci->len] = _DUP_STR(val);
-    ci->len++;
-}
-
-// Read the actual command line for a single parameter and store it according
-// to the setup given by the add_cmd_line() functions. If an error is
-// encountered, then post an error and abort the program.
-static int get_parm(_cmd_line_t* ptr, int idx, const char** argv) {
-
-    const char* str = argv[idx];
-    if(str[0] == '-') {
-        // Have a parameter. Find it in the list of parameters. If it doesn't
-        // exist, then publish an error.
-        _cmd_item_t* ci = find_item_by_parm(ptr, str);
-
-        // If the parm does not exist in the data, then it's an error
-        if(ci == NULL)
-            show_error(ptr, "Unknown command parameter: %s\n", str);
-
-        // If it has been seen and it's not a list, then that is an error.
-        if(ci->flags & CMD_SEEN && !(ci->flags & CMD_LIST))
-            show_error(ptr, "Duplicate command parameter is not a list: %s", ci->parm);
-
-        // check if it's a true or false toggle
-        if(ci->flags & CMD_TRUE || ci->flags & CMD_FALSE) {
-
-        }
-
-        // ci has the value of the parameter definition. See if the value
-        // is embedded in this string, or if it's a separate string.
-        int plen = strlen(ci->parm);
-        if(strlen(str) > plen) {
-            // The command line object is longer than the parm definition.
-            char *spt = _DUP_STR(&str[plen]); // strip it leaving the value
-            char* value;
-            if(ispunct(spt[0]))
-                value = &spt[1];
-            else
-                value = spt;
-
-            add_value(ci, value);
-            _FREE(spt);
-        }
-        else {
-            idx++;
-            str = argv[idx];
-
-            if(str[0] == '-')
-                show_error(ptr, "Expected a argument but got a parameter: %s", str);
-
-            add_value(ci, str);
-        }
-
-        idx++;
-        ci->flags |= CMD_SEEN;
-    }
-    else {
-        // Have a stray string. See if there is a list to put it into or else
-        // post an error and abort the program.
-        _cmd_item_t* ci = find_item_by_parm(ptr, "");
-
-        // If the parm does not exist in the data, then it's an error
-        if(ci == NULL)
-            show_error(ptr, "Unknown positional argument: %s", str);
-
-        // If it has been seen and it's not a list, then that is an error.
-        if(ci->flags & CMD_SEEN && !(ci->flags & CMD_LIST))
-            show_error(ptr, "Invalid positional argument: %s", str);
-
-        add_value(ci, str);
-        ci->flags |= CMD_SEEN;
-        idx++;
-    }
-
-    return idx;
-}
-
-// Check that all required parameters are present and have values. If they are
-// not, then post an error and abort the program.
-static void check_required(_cmd_line_t* ptr) {
-
-    for(int x = 0; x < ptr->len; x++) {
-        _cmd_item_t* ci = ptr->list[x];
-        if(ci->flags & CMD_REQD && !(ci->flags & CMD_SEEN))
-            show_error(ptr, "Required parameter not found: %s\n", ci->parm);
-    }
-}
-
-//------------------------------------------------------------------------
-// API
-//------------------------------------------------------------------------
-
-/*
- * Create the command line data structure. This must be called before any
- * of these API.
- */
-CmdLine create_cmd_line(const char* description) {
-
-    assert(description != NULL);
-
-    _cmd_line_t* ptr = _ALLOC_T(_cmd_line_t);
-    ptr->cap = 1 << 3;
-    ptr->len = 0;
-    ptr->list = _ALLOC_ARRAY(_cmd_item_t*, ptr->cap);
-
-    ptr->description = _DUP_STR(description);
-    ptr->fname = NULL;
-
-    return ptr;
-}
-
-/*
- * Destroy the command line data structure and free all of the memory.
- */
-void destroy_cmd_line(CmdLine cl_ptr) {
-
-    assert(cl_ptr != NULL);
-    _cmd_line_t* ptr = (_cmd_line_t*)cl_ptr;
-
-    if(ptr->list != NULL) {
-        for(int x = 0; x < ptr->len; x++)
-            destroy_item(ptr->list[x]);
-        _FREE(ptr->list);
-    }
-
-    if(ptr->description != NULL)
-        _FREE(ptr->description);
-
-    if(ptr->fname != NULL)
-        _FREE(ptr->fname);
-
-    _FREE(ptr);
-}
-
-/*
- * Add a command line parameter to the parser.
- *
- *   parm = the name to recognize on the command line.
- *   name = the name to use when retrieving a parameter.
- *   dvalue = the default value of the parameter.
- *   flags = controls the specify the behavior of the
- *           parameter on the command line.
- *
- * If this is called with a NULL param and CMD_LIST as a
- * flag, then random strings (like file names) will be
- * stored under the name.
- */
-void add_cmd_line(CmdLine cl_ptr,
+void add_cmd(CmdLine cl,
                 const char* parm,
                 const char* name,
+                const char* help,
                 const char* dvalue,
                 unsigned char flags) {
 
-    assert(cl_ptr != NULL);
-    assert(name != NULL);
-    _cmd_line_t* ptr = (_cmd_line_t*)cl_ptr;
+    assert(cl != NULL);
+    CmdItem* ci;
+    Cmd* cmd = (Cmd*)cl;
 
-    if(find_item_by_name(ptr, name) == NULL) {
-        if(ptr->len+1 > ptr->cap) {
-            ptr->cap <<= 1;
-            ptr->list = _REALLOC_ARRAY(ptr->list, _cmd_item_t*, ptr->cap);
-        }
-
-        ptr->list[ptr->len] = create_item(name, parm, dvalue, flags);
-        ptr->len++;
-    }
-    else {
-        // developer error: duplicate names are not allowed
-        fprintf(stderr, "cmd dev error: duplicate names: %s\n", name);
+    // check for developer errors.
+    if(NULL != find_by_name(cmd, name)) {
+        fprintf(stderr, "cmd dev error: attempt to create duplicate name: %s\n", name);
         exit(1);
     }
-}
-
-/*
- * Read the actual command line into the data structure and abort the program
- * if there is an error on the command line. This implements a simple state
- * machine that parses the individual strings given by argv[].
- */
-void parse_cmd_line(CmdLine cl_ptr, int argc, const char** argv) {
-
-    assert(cl_ptr != NULL);
-    assert(argc > 0);
-    assert(argv != NULL);
-
-    _cmd_line_t* ptr = (_cmd_line_t*)cl_ptr;
-
-    ptr->fname = _DUP_STR(argv[0]);
-
-    for(int idx = 1; idx < argc; /* empty */) {
-        idx = get_parm(ptr, idx, argv);
-    }
-
-    check_required(ptr);
-}
-
-/*
- * Iterate the named command parameter. If it is not a list, then return the
- * same value upon multiple calls. Otherwise, iterate the list and return NULL
- * after the last item. If the flag is set and the item is a list, then the
- * iterator is reset. If the parameter is not a list, then it's ignored.
- */
-const char* get_cmd_line(CmdLine cl_ptr, const char* name, bool flag) {
-
-    assert(cl_ptr != NULL);
-    assert(name != NULL);
-    _cmd_line_t* ptr = (_cmd_line_t*)cl_ptr;
-
-    // This find is done every time to allow more than one item to be
-    // iterated at the same time. This will likely need to be optimized if
-    // a lot of iteration is called for.
-    _cmd_item_t* ci = find_item_by_name(ptr, name);
-
-    if(ci != NULL) {
-        if(ci->flags & CMD_LIST) {
-            if(flag)
-                ci->idx = 0;
-
-            const char* str = NULL;
-            if(ci->idx < ci->len) {
-                str = ci->value[ci->idx];
-                ci->idx++;
+    else {
+        reset_ci_list(cmd->items);
+        while(NULL != (ci = iterate_ci_list(cmd->items))) {
+            if(!strcmp(ci->parm, parm)) {
+                fprintf(stderr, "cmd dev error: attempt to create duplicate parameter: %s\n", name);
+                exit(1);
             }
-
-            return str;
-        }
-        else {
-            return ci->value[0];
         }
     }
-    else {
-        // developer error
-        fprintf(stderr, "cmd dev error: attempt to iterate non-existant item: %s\n", name);
-        exit(1);
+
+    // create a new item
+    ci = create_item(parm, name, help, flags);
+
+    // set up the default value
+    if((!(flags & CMD_BOOL)) && dvalue != NULL) {
+        push_str_list(ci->list, create_string(dvalue));
     }
 
-    // cannot happen, but make the compiler happy
-    return NULL;
+    add_ci_list(cmd->items, ci);
 }
 
-/*
- * Print out the current state of the data structures for debugging.
- */
-void dump_cmd_line(CmdLine cl) {
+Str* get_cmd_str(CmdLine cl, const char* name) {
 
     assert(cl != NULL);
-    _cmd_line_t* ptr = (_cmd_line_t*)cl;
+    assert(name != NULL);
+    CmdItem* ci = find_by_name((Cmd*)cl, name);
+    assert(ci != NULL);
+
+    return peek_str_list(ci->list);
 }
+
+bool get_cmd_bool(CmdLine cl, const char* name) {
+
+    assert(cl != NULL);
+    assert(name != NULL);
+    CmdItem* ci = find_by_name((Cmd*)cl, name);
+    assert(ci != NULL);
+
+    return ci->bval;
+}
+
+StrList* get_cmd_list(CmdLine cl, const char* name) {
+
+    assert(cl != NULL);
+    assert(name != NULL);
+    CmdItem* ci = find_by_name((Cmd*)cl, name);
+    assert(ci != NULL);
+
+    return ci->list;
+}
+
+CmdFlag get_cmd_flag(CmdLine cl, const char* name) {
+
+    assert(cl != NULL);
+    assert(name != NULL);
+    CmdItem* ci = find_by_name((Cmd*)cl, name);
+    assert(ci != NULL);
+
+    return ci->flag;
+}
+
+// split the string at len. i.e.
+// string = "123456789" and len = 3
+// then return a string = "456789"
+// if len is greater or equal to strlen() then return NULL.
+static const char* split_arg(int len, const char* str) {
+
+    int slen = strlen(str);
+    if(slen > len) {
+        if(str[len] == ':' || str[len] == '=')
+            len++;
+        if(strlen(&str[len]) > 0)
+            return &str[len];
+        else
+            return NULL;
+    }
+    else
+        return NULL;
+}
+
+static int get_cats(Cmd* cmd, const char* str) {
+
+}
+
+static int get_dash(Cmd* cmd, CmdItem* ci, int idx, char** argv) {
+
+    const char* str = argv[idx];
+
+            if(ci->flag & CMD_LIST) {
+                // more than one instances are allowed.
+                const char* tmp = split_arg(strlen(ci->parm), str);
+                if(tmp != NULL)
+                    add_str_list(ci->list, tmp);
+                else {
+
+                }
+            }
+
+            // check to see if the supplied arg is the same length as the one
+            // that was found on the cmd line.
+            int len = strlen(ci->parm);
+            if(strlen(str) > len) {
+                // the arg is concatenated to the parameter
+                str = &str[len];
+                if(str[0] == ':' || str[0] == '=')
+                    str = &str[1];
+
+            }
+
+}
+
+// get one command line argument.
+static int get_cmd(Cmd* cmd, int idx, char** argv) {
+
+    CmdItem* ci;
+    const char* str = argv[idx];
+    if(str[0] == '-') {
+        if(!strcmp(str, "-h")||!strcmp(str, "--help")||!strcmp(str, "-?")) {
+            show_help(cmd);
+            exit(1);
+        }
+
+        // have a defined command
+        ci = find_by_parm(cmd, str);
+        if(ci != NULL) {
+            idx = get_dash(cmd, ci, idx, argv);
+        }
+        else {
+            show_error(cmd, "Unknown command line argument: %s", str);
+        }
+    }
+    else {
+        // have a stand-alone string
+        ci = find_by_name(cmd, "");
+        if(ci != NULL)
+            add_str_list(ci->list, create_string(str));
+        else
+            show_error(cmd, "Unexpected stand-alone argument: %s", str);
+    }
+    return idx+1;
+}
+
+// Read the command line from the system.
+void parse_cmd_line(CmdLine cl, int argc, const char** argv) {
+
+    Cmd* cmd = (Cmd*)cl;
+    cmd->fname = _DUP_STR(argv[0]);
+    int idx;
+
+    for(idx = 1; idx < argc; /* empty */) {
+        idx = get_cmd(cmd, idx, argv);
+    }
+}
+
+// use for debugging....
+void dump_cmd_line(CmdLine cl) {
+
+    Cmd* cmd = (Cmd*)cl;
+    CmdItem* ci;
+
+    reset_ci_list(cmd->items);
+    while(NULL != (ci = iterate_ci_list(cmd->items))) {
+        printf("%s:\n", ci->name);
+        printf("    %-5s%s\n", ci->parm, ci->help);
+        printf("    flags: (CMD_NONE");
+        if(ci->flag & CMD_REQD) printf("|CMD_REQD");
+        if(ci->flag & CMD_LIST) printf("|CMD_LIST");
+        if(ci->flag & CMD_STR)  printf("|CMD_STR");
+        if(ci->flag & CMD_BOOL) printf("|CMD_BOOL");
+        if(ci->flag & CMD_SEEN) printf("|CMD_SEEN");
+        printf(")\n");
+        printf("    values: ");
+        if(ci->flag & CMD_BOOL)
+            printf("%s\n", (ci->bval)? "true": "false");
+        else {
+            Str* str;
+            reset_str_list(ci->list);
+            while(NULL != (str = iterate_str_list(ci->list)))
+                printf("        %s\n", raw_string(str));
+        }
+    }
+}
+
+

@@ -1,30 +1,44 @@
-
+#include <assert.h>
+#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 
 #include "util.h"
 
-StrLst* create_str_lst() {
-    return (StrLst*)create_ptr_lst();
+StrList* create_str_list() {
+    return (StrList*)create_ptr_list();
 }
 
-void destroy_str_lst(StrLst* lst) {
+void destroy_str_list(StrList* lst) {
     for(int x = 0; x < lst->len; x++)
-        _FREE(lst->list[x]);
-    destroy_ptr_lst(lst);
+        destroy_string(lst->list[x]);
+    destroy_ptr_list(lst);
 }
 
-void add_str_lst(StrLst* lst, const char* str) {
-    add_ptr_lst(lst, (void*)_DUP_STR(str));
+void add_str_list(StrList* lst, Str* str) {
+    add_ptr_list(lst, str);
 }
 
-void reset_str_lst(StrLst* lst) {
-    reset_ptr_lst(lst);
+void reset_str_list(StrList* lst) {
+    reset_ptr_list(lst);
 }
 
-const char* iterate_str_lst(StrLst* lst) {
-    return (const char*)iterate_ptr_lst(lst);
+Str* iterate_str_list(StrList* lst) {
+    return (Str*)iterate_ptr_list(lst);
 }
+
+void push_str_list(StrList* lst, Str* str) {
+    push_ptr_list(lst, str);
+}
+
+Str* peek_str_list(StrList* lst) {
+    return (Str*)peek_ptr_list(lst);
+}
+
+Str* pop_str_list(StrList* lst) {
+    return (Str*)pop_ptr_list(lst);
+}
+
 
 Str* create_string(const char* str) {
 
@@ -63,9 +77,10 @@ Str* create_string_fmt(const char* str, ...) {
 
 void destroy_string(Str* ptr) {
 
-    assert(ptr != NULL);
-    _FREE(ptr->buf);
-    _FREE(ptr);
+    if(ptr != NULL) {
+        _FREE(ptr->buf);
+        _FREE(ptr);
+    }
 }
 
 void add_string_char(Str* ptr, int ch) {
@@ -87,7 +102,7 @@ void add_string_str(Str* ptr, const char* str) {
     assert(ptr != NULL);
     assert(str != NULL);
 
-    size_t len = strlen(str);
+    int len = strlen(str);
     if(ptr->len+len+1 > ptr->cap) {
         while(ptr->len+len+1 > ptr->cap)
             ptr->cap <<= 1;
@@ -144,3 +159,10 @@ const char* raw_string(Str* ptr) {
     return ptr->buf;
 }
 
+int comp_str(Str* s1, Str* s2) {
+    return strcmp(s1->buf, s2->buf);
+}
+
+int comp_str_const(Str* s1, const char* s2) {
+    return strcmp(s1->buf, s2);
+}

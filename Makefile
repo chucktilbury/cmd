@@ -1,26 +1,29 @@
 
-TARGET	=	cmd
-OBJS	=	cmd.o \
-			mem.o \
-			item.o \
-			line.o \
+TEST	=	cmd
+TARGET	=	libutils.a
+OBJS	=	mem.o \
 			ptrlst.o \
-			str.o
+			str.o \
+			hash.o \
+			cmd.o
 
-CARGS	=	-Wall -Wextra -Wpedantic
-DEBUG	=	-g -DENA_TRACE
-EXT	=	-Wno-unused-variable -Wno-sign-compare
+DEBUG	=	-g
+EXT		=	-Wno-unused-variable -Wno-sign-compare
+CONFIG	=	-DENA_TRACE -DUSE_GC -lgc
+LIBDIRS	=	-L.
+LIBS	=	-lutils -lgc
+CARGS	=	$(CONFIG) -Wall -Wextra -Wpedantic
 
-all: $(TARGET)
+all: $(TEST)
 
 %.o:%.c
 	gcc $(CARGS) $(DEBUG) -c -o $@ $<
 
-libcmd.a: $(OBJS)
-	ar crs $@ $<
+libutils.a: $(OBJS)
+	ar crs $@ $(OBJS)
 
-$(TARGET): $(OBJS)
-	gcc $(CARGS) $(DEBUG) -o $(TARGET) -lcmd
+$(TEST): $(TARGET) $(OBJS)
+	gcc $(CARGS) $(DEBUG) -o $(TEST) test.c $(LIBDIRS) $(LIBS)
 
 clean:
-	rm -f $(TARGET) $(OBJS) *.bak
+	rm -f $(TEST) $(TARGET) $(OBJS)
