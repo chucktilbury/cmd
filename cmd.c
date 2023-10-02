@@ -84,6 +84,8 @@ typedef struct {
     CmdItemList* items;
     const char* desc;
     const char* fname;
+    int max_args;
+    int index;
 } Cmd;
 
 // Show the help text and exit.
@@ -91,26 +93,45 @@ static void show_help(Cmd* ptr) {
 
     CmdItem* ci;
 
-    printf("%s use: %s\n", ptr->fname, ptr->desc);
+    printf("use: %s ", ptr->fname);
+    reset_ci_list(ptr->items);
+    int len = 0;
+    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+        if(strlen(ci->parm) > 0)
+            printf("[%s] ", ci->parm);
+        else
+            printf("[file list] ");
+        int tmp = strlen(ci->parm);
+        if(tmp > len)
+            len = tmp;
+    }
+    len /= 2;
+
+    printf("\n\n%s\n\n", ptr->desc);
     reset_ci_list(ptr->items);
     while(NULL != (ci = iterate_ci_list(ptr->items))) {
-        printf("  %-5s ", ci->parm);
+        printf(" %*s%*s ", (int)(len+(strlen(ci->parm)/2)), ci->parm, (int)(len-(strlen(ci->parm)/2)), "");
+
         if(ci->flag & CMD_STR)
-            printf("STR   ");
+            printf("(STR)   ");
         else if(ci->flag & CMD_LIST)
-            printf("LIST  ");
+            printf("(LIST)  ");
+        else if(ci->flag & CMD_INT)
+            printf("(INT)   ");
+        else if(ci->flag & CMD_LIST)
+            printf("(FLOAT) ");
         else if(ci->flag & CMD_BOOL)
-            printf("(bool) ");
+            printf("(BOOL)  ");
         else
-            printf("       ");
+            printf("        ");
 
         if(ci->flag & CMD_REQD)
-            printf("%s (required)", ci->help);
+            printf("- %s (required)", ci->help);
         else
-            printf("%s", ci->help);
-
+            printf("- %s", ci->help);
         printf("\n");
     }
+    printf("\n\n");
 }
 
 // Show an error and exit.
@@ -118,7 +139,7 @@ static void show_error(Cmd* ptr, const char* fmt, ...) {
 
     va_list args;
 
-    fprintf(stderr, "ERROR: ");
+    fprintf(stderr, "CMD ERROR: ");
 
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -131,7 +152,7 @@ static void show_error(Cmd* ptr, const char* fmt, ...) {
 }
 
 // find exact name
-CmdItem* find_by_name(Cmd* ptr, const char* name) {
+static CmdItem* find_by_name(Cmd* ptr, const char* name) {
 
     assert(ptr != NULL);
     assert(name != NULL);
@@ -148,11 +169,10 @@ CmdItem* find_by_name(Cmd* ptr, const char* name) {
 }
 
 // find by longest match
-CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
+static CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
 
     assert(ptr != NULL);
     assert(parm != NULL);
-
     CmdItem* ci, *crnt = NULL;
     int len = 0, max = 0;
 
@@ -160,7 +180,7 @@ CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
     while(NULL != (ci = iterate_ci_list(ptr->items))) {
         len = strlen(ci->parm);
         if(!strncmp(ci->parm, parm, len)) {
-            if(len > max) {
+            if(len >= max) {
                 max = len;
                 crnt = ci;
             }
@@ -168,6 +188,94 @@ CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
     }
 
     return crnt;
+}
+
+static void increment_index(Cmd* cmd) {
+
+    //cmd->index ++;
+
+    if(cmd->index < cmd->max_args)
+        cmd->index++;
+    else
+        show_error(cmd, "expected a command parameter");
+}
+
+static void save_cmd(Cmd* cmd, CmdItem* ci, const char* str) {
+
+    if(ci->flag & CMD_SEEN && !(ci->flag & CMD_LIST))
+        show_error(cmd, "invalid duplicate flag found: \"%s\"", ci->parm);
+    else
+        ci->flag |= CMD_SEEN;
+
+    if(ci->flag & CMD_BOOL)
+        ci->bval = true;
+    else if(ci->flag & (CMD_LIST|CMD_STR|CMD_INT|CMD_FLOAT))
+        add_str_list(ci->list, create_string(str));
+    else
+        show_error(cmd, "invalid flag value: 0x%02X", ci->flag);
+}
+
+static void get_cats(Cmd* cmd, CmdItem* ci, int len, char* str) {
+
+    char* tpt = &str[len];
+    if(tpt[0] == ':' || tpt[0] == '=')
+        tpt++;
+
+    save_cmd(cmd, ci, tpt);
+}
+
+static void get_dash(Cmd* cmd, CmdItem* ci, char** argv) {
+
+    char* str = argv[cmd->index];
+    size_t len = strlen(ci->parm);
+
+    if(strlen(str) != len)
+        get_cats(cmd, ci, (int)len, str);
+    else {
+        increment_index(cmd);
+        if(cmd->index < cmd->max_args) {
+            str = argv[cmd->index];
+            if(str[0] == '-')
+                show_error(cmd, "a command argument cannot start with a '-': \"%s\"", str);
+            else
+                save_cmd(cmd, ci, str);
+        }
+        else
+            show_error(cmd, "unexpected end of command line");
+    }
+}
+
+// get one command line argument.
+static void get_cmd(Cmd* cmd, char** argv) {
+
+    CmdItem* ci;
+    const char* str = argv[cmd->index];
+    if(str[0] == '-') {
+        // have a defined command
+        ci = find_by_parm(cmd, str);
+        if(ci != NULL) {
+            if(ci->flag & CMD_HELP) {
+                show_help(cmd);
+                exit(0);
+            }
+            else
+                get_dash(cmd, ci, argv);
+        }
+        else
+            show_error(cmd, "unknown command line argument: %s", str);
+    }
+    else {
+        // have a stand-alone string
+        ci = find_by_parm(cmd, "");
+        if(ci != NULL) {
+            add_str_list(ci->list, create_string(str));
+            ci->flag |= CMD_SEEN;
+        }
+        else
+            show_error(cmd, "unexpected stand-alone argument: %s", str);
+    }
+
+    increment_index(cmd);
 }
 
 /*************************************************************************
@@ -226,9 +334,10 @@ void add_cmd(CmdLine cl,
     ci = create_item(parm, name, help, flags);
 
     // set up the default value
-    if((!(flags & CMD_BOOL)) && dvalue != NULL) {
+    if((!(flags & CMD_BOOL)) && dvalue != NULL)
         push_str_list(ci->list, create_string(dvalue));
-    }
+    else
+        ci->bval = false;
 
     add_ci_list(cmd->items, ci);
 }
@@ -241,6 +350,27 @@ Str* get_cmd_str(CmdLine cl, const char* name) {
     assert(ci != NULL);
 
     return peek_str_list(ci->list);
+}
+
+long int get_cmd_int(CmdLine cl, const char* name) {
+
+    Str* s = get_cmd_str(cl, name);
+
+    return strtol(raw_string(s), NULL, 10);
+}
+
+unsigned long int get_cmd_unsigned(CmdLine cl, const char* name) {
+
+    Str* s = get_cmd_str(cl, name);
+
+    return strtol(raw_string(s), NULL, 16);
+}
+
+double get_cmd_float(CmdLine cl, const char* name) {
+
+    Str* s = get_cmd_str(cl, name);
+
+    return strtod(raw_string(s), NULL);
 }
 
 bool get_cmd_bool(CmdLine cl, const char* name) {
@@ -273,100 +403,30 @@ CmdFlag get_cmd_flag(CmdLine cl, const char* name) {
     return ci->flag;
 }
 
-// split the string at len. i.e.
-// string = "123456789" and len = 3
-// then return a string = "456789"
-// if len is greater or equal to strlen() then return NULL.
-static const char* split_arg(int len, const char* str) {
-
-    int slen = strlen(str);
-    if(slen > len) {
-        if(str[len] == ':' || str[len] == '=')
-            len++;
-        if(strlen(&str[len]) > 0)
-            return &str[len];
-        else
-            return NULL;
-    }
-    else
-        return NULL;
-}
-
-static int get_cats(Cmd* cmd, const char* str) {
-
-}
-
-static int get_dash(Cmd* cmd, CmdItem* ci, int idx, char** argv) {
-
-    const char* str = argv[idx];
-
-            if(ci->flag & CMD_LIST) {
-                // more than one instances are allowed.
-                const char* tmp = split_arg(strlen(ci->parm), str);
-                if(tmp != NULL)
-                    add_str_list(ci->list, tmp);
-                else {
-
-                }
-            }
-
-            // check to see if the supplied arg is the same length as the one
-            // that was found on the cmd line.
-            int len = strlen(ci->parm);
-            if(strlen(str) > len) {
-                // the arg is concatenated to the parameter
-                str = &str[len];
-                if(str[0] == ':' || str[0] == '=')
-                    str = &str[1];
-
-            }
-
-}
-
-// get one command line argument.
-static int get_cmd(Cmd* cmd, int idx, char** argv) {
-
-    CmdItem* ci;
-    const char* str = argv[idx];
-    if(str[0] == '-') {
-        if(!strcmp(str, "-h")||!strcmp(str, "--help")||!strcmp(str, "-?")) {
-            show_help(cmd);
-            exit(1);
-        }
-
-        // have a defined command
-        ci = find_by_parm(cmd, str);
-        if(ci != NULL) {
-            idx = get_dash(cmd, ci, idx, argv);
-        }
-        else {
-            show_error(cmd, "Unknown command line argument: %s", str);
-        }
-    }
-    else {
-        // have a stand-alone string
-        ci = find_by_name(cmd, "");
-        if(ci != NULL)
-            add_str_list(ci->list, create_string(str));
-        else
-            show_error(cmd, "Unexpected stand-alone argument: %s", str);
-    }
-    return idx+1;
-}
-
 // Read the command line from the system.
-void parse_cmd_line(CmdLine cl, int argc, const char** argv) {
+void parse_cmd_line(CmdLine cl, int argc, char** argv) {
 
     Cmd* cmd = (Cmd*)cl;
     cmd->fname = _DUP_STR(argv[0]);
-    int idx;
+    cmd->max_args = argc;
+    cmd->index = 1;
 
-    for(idx = 1; idx < argc; /* empty */) {
-        idx = get_cmd(cmd, idx, argv);
+    while(cmd->index < cmd->max_args)
+        get_cmd(cmd, argv);
+
+    CmdItem* ci;
+    reset_ci_list(cmd->items);
+    while(NULL != (ci = iterate_ci_list(cmd->items))) {
+        if(ci->flag & CMD_REQD && !(ci->flag & CMD_SEEN)) {
+            if(strlen(ci->parm) == 0)
+                show_error(cmd, "required file list not seen");
+            else
+                show_error(cmd, "required parameter not seen: \"%s\"", ci->parm);
+        }
     }
 }
 
-// use for debugging....
+// example use and use for debugging....
 void dump_cmd_line(CmdLine cl) {
 
     Cmd* cmd = (Cmd*)cl;
@@ -375,13 +435,16 @@ void dump_cmd_line(CmdLine cl) {
     reset_ci_list(cmd->items);
     while(NULL != (ci = iterate_ci_list(cmd->items))) {
         printf("%s:\n", ci->name);
-        printf("    %-5s%s\n", ci->parm, ci->help);
+        printf("    %s -- %s\n", ci->parm, ci->help);
         printf("    flags: (CMD_NONE");
         if(ci->flag & CMD_REQD) printf("|CMD_REQD");
         if(ci->flag & CMD_LIST) printf("|CMD_LIST");
         if(ci->flag & CMD_STR)  printf("|CMD_STR");
         if(ci->flag & CMD_BOOL) printf("|CMD_BOOL");
         if(ci->flag & CMD_SEEN) printf("|CMD_SEEN");
+        if(ci->flag & CMD_HELP) printf("|CMD_HELP");
+        if(ci->flag & CMD_FLOAT) printf("|CMD_FLOAT");
+        if(ci->flag & CMD_INT) printf("|CMD_INT");
         printf(")\n");
         printf("    values: ");
         if(ci->flag & CMD_BOOL)
@@ -390,9 +453,11 @@ void dump_cmd_line(CmdLine cl) {
             Str* str;
             reset_str_list(ci->list);
             while(NULL != (str = iterate_str_list(ci->list)))
-                printf("        %s\n", raw_string(str));
+                printf(" %s", raw_string(str));
         }
+        printf("\n");
     }
+    printf("\n\n");
 }
 
 

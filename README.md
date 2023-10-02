@@ -1,10 +1,34 @@
-# cmd
+# UTIL
+
+## MEM
+
+This is a memory allocation interface. Its main purpose is to put a wrapper around memory allocation to detect allocation errors and abort the program if it runs out of memory. This particular library is able to switch to using the Boehm-Demers-Weiser Garbage Collector, which can be had here: https://github.com/ivmai/bdwgc. If you want to use the garbage collection then install the library and build this library with the ``USE_GC`` define set and the interface to it will be used instead of the standard library.
+
+### API
+
+* _ALLOC(s)
+* _ALLOC_T(t)
+* _ALLOC_ARRAY(t, n)
+* _REALLOC(p, s)
+* _REALLOC_T(p, t)
+* _REALLOC_ARRAY(p, t, n)
+* _DUP_MEM(p, s)
+* _DUP_STR(p)
+* _FREE(p)
+
+## PTRLST
+
+## STR
+
+## HASH
+
+## CMD
 
 Simple command line parser for C.
 
 This is a simple library that is intended to be used with a language compiler. It does not attempt to be compatible with POSIX or Windows, but it does attempt to be easy to use and complete. Both ease of use for the developer who is writing the program that uses the command line, and for the end-user that is using the program is considered to be a priority.
 
-## Supported features
+### Supported features
 
 * A parameter name is the string on the command line that causes the parser to perform some action or that introduces an argument. Parameter names always start with one or more dashes (-) and it can have one or more alphabetical characters or dashes. No digits or other punctuation characters are allowed.
 * The general format of a command parameter is ``-name value``. Also ``-name=value``, ``-name:value`` are valid and equivalent. Any punctuation character except ```-``` is recognized as a name/value separator.  A name may have a ```-``` embedded in it, such as ``--some-name`` and be recognized as a valid single parameter name.
@@ -18,14 +42,14 @@ This is a simple library that is intended to be used with a language compiler. I
   * In the second form, the list is connected with a parameter name and separated by a comma. For example, ``-x:opt1,opt2,opt3``. When this format is used, then the parameter cannot contain spaces adjacent to the comma character, but spaces can be embedded in an option using quotes, according to the command line rules of the operating system.
 * The parameters ``-h``, ``--help``, and ``-?`` are reserved and print the help screen and exit. Note that the parameter ``-hq`` or ``-hx`` are valid stand-alone parameters like any other.
 
-## Unsupported features
+### Unsupported features
 
 * Grouped parameters. For example, ``-abc`` is a single parameter name, and not ``-a -b -c``.
 * Mutually required parameters.
 * Mutually exclusive parameters.
 * Duplicate parameters
 
-## API
+### API
 
 ```C
 // Flags are a bitmask. For example, OR them together, such as
@@ -74,41 +98,21 @@ void reset_cmd(CmdLine cmd, const char* name);
 // Otherwise, if the value is defined as a string, then return the
 // string if it is defined, or NULL if it is not. If the command was
 // defined as a list then return the list iteration.
-const char* get_cmd(CmdLine cmd, const char* name);
 
+// return the parameter as a "cooked" string
+Str* get_cmd_str(CmdLine cl, const char* name);
+// return the parameter as a long int. Note that the user is responsible for
+// checking the validity of the number.
+long int get_cmd_int(CmdLine cl, const char* name);
+// return the parameter as an unsigned long int. Note that the user is
+// responsible for checking the validity of the number.
+unsigned long int get_cmd_unsigned(CmdLine cl, const char* name);
+// return the parameter as a double float
+double get_cmd_float(CmdLine cl, const char* name);
+// return an iterable list of strings
+StrList* get_cmd_list(CmdLine cl, const char* name);
+// return the boolean value. The default is always false.
+bool get_cmd_bool(CmdLine cl, const char* name);
+// return the flag so you can see what the type is.
+CmdFlag get_cmd_flag(CmdLine cl, const char* name);
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

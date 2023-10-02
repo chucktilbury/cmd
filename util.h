@@ -105,7 +105,10 @@ typedef enum {
     CMD_LIST = 0x02,
     CMD_STR  = 0x04,
     CMD_BOOL = 0x08,
-    CMD_SEEN = 0x10,
+    CMD_FLOAT = 0x10,
+    CMD_INT = 0x20,
+    CMD_SEEN = 0x40,
+    CMD_HELP = 0x80,
 } CmdFlag;
 
 // Opaque handle for command line.
@@ -135,10 +138,13 @@ void add_cmd(CmdLine cl,
 
 // Read the actual command line into the data structure and abort
 // the program if there is an error.
-void parse_cmd_line(CmdLine cl, int argc, const char** argv);
+void parse_cmd_line(CmdLine cl, int argc, char** argv);
 
 // retrieve the value stored by the name, or publish an error.
 Str* get_cmd_str(CmdLine cl, const char* name);
+long int get_cmd_int(CmdLine cl, const char* name);
+unsigned long int get_cmd_unsigned(CmdLine cl, const char* name);
+double get_cmd_float(CmdLine cl, const char* name);
 StrList* get_cmd_list(CmdLine cl, const char* name);
 bool get_cmd_bool(CmdLine cl, const char* name);
 CmdFlag get_cmd_flag(CmdLine cl, const char* name);
