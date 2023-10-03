@@ -1,10 +1,26 @@
 # UTIL
 
-This is a library of routines that I find myself using over and over. So, instead of copying them to a new project, I will use this library to capture updates and changes. There is no gurantee that this will remain the same going forward. All of the things in this library are very simple and subject to change.
+This is a library of routines that I find myself using over and over. So, instead of copying them to a new project, I will use this library to capture updates and changes. There is no guarantee that this will remain the same going forward. All of the things in this library are very simple and subject to change.
 
 Likely changes that will happen in the future are
 * Expanded handling of strings
-* Sorting for lists
+  * Insert into interior of string
+  * Prepend string.
+  * Remove test from interior of string.
+  * Strip white from ends.
+* Enhancements for lists
+  * Sorting a list, based on a user-defined compare callback.
+  * Searching based on user-defined callback.
+  * Deleting from the interior of the list
+  * Detect changes to list while iterating
+* Enhancements to the cmd parser
+  * Add ability to form lists for a single parameter using the ',' character.
+  * Better handling for boolean toggles
+* Enhancements to hash tables
+  * Store void pointers instead of internal memory allocations.
+* Enhancements to memory functions
+  * Integrate the garbage collector into the tree using embedded GIT project.
+* Implement exceptions using setjmp standard library and use them in this library.
 
 ## MEM
 
