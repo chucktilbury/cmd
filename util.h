@@ -14,6 +14,7 @@
 #define _REALLOC_T(p, t)        (t*)mem_realloc((p), sizeof(t))
 #define _REALLOC_ARRAY(p, t, n) (t*)mem_realloc((p), sizeof(t)*(n))
 #define _DUP_MEM(p, s)          mem_dup((p), (s))
+#define _DUP_MEM_T(p, t)        (t*)mem_dup((p), sizeof(t))
 #define _DUP_STR(p)             mem_dup_str(p)
 #define _FREE(p)                mem_free(((void*)p))
 

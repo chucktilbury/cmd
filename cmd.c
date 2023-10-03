@@ -81,11 +81,13 @@ static CmdItem* iterate_ci_list(CmdItemList* h) {
 }
 
 typedef struct {
-    CmdItemList* items;
+    CmdItemList* table;
     const char* desc;
     const char* fname;
+    char** line;
     int max_args;
     int index;
+    char* token;
 } Cmd;
 
 // Show the help text and exit.
@@ -94,9 +96,9 @@ static void show_help(Cmd* ptr) {
     CmdItem* ci;
 
     printf("use: %s ", ptr->fname);
-    reset_ci_list(ptr->items);
+    reset_ci_list(ptr->table);
     int len = 0;
-    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+    while(NULL != (ci = iterate_ci_list(ptr->table))) {
         if(strlen(ci->parm) > 0)
             printf("[%s] ", ci->parm);
         else
@@ -108,8 +110,8 @@ static void show_help(Cmd* ptr) {
     len /= 2;
 
     printf("\n\n%s\n\n", ptr->desc);
-    reset_ci_list(ptr->items);
-    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+    reset_ci_list(ptr->table);
+    while(NULL != (ci = iterate_ci_list(ptr->table))) {
         printf(" %*s%*s ", (int)(len+(strlen(ci->parm)/2)), ci->parm, (int)(len-(strlen(ci->parm)/2)), "");
 
         if(ci->flag & CMD_STR)
@@ -139,7 +141,7 @@ static void show_error(Cmd* ptr, const char* fmt, ...) {
 
     va_list args;
 
-    fprintf(stderr, "CMD ERROR: ");
+    fprintf(stderr, "\nCMD ERROR: ");
 
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -159,8 +161,8 @@ static CmdItem* find_by_name(Cmd* ptr, const char* name) {
 
     CmdItem* ci;
 
-    reset_ci_list(ptr->items);
-    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+    reset_ci_list(ptr->table);
+    while(NULL != (ci = iterate_ci_list(ptr->table))) {
         if(!strcmp(ci->name, name))
             return ci;
     }
@@ -174,11 +176,17 @@ static CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
     assert(ptr != NULL);
     assert(parm != NULL);
     CmdItem* ci, *crnt = NULL;
-    int len = 0, max = 0;
+    int len = 0, max = 0, plen = strlen(parm);
 
-    reset_ci_list(ptr->items);
-    while(NULL != (ci = iterate_ci_list(ptr->items))) {
+    reset_ci_list(ptr->table);
+    while(NULL != (ci = iterate_ci_list(ptr->table))) {
         len = strlen(ci->parm);
+#if 1
+// if you want file list items with a leading '-' and/or you don't want to
+// fail them as invalid command switches, then define this out.
+        if(len == 0 && plen != 0)
+            continue;  // case where len is zero causes invalid hits.
+#endif
         if(!strncmp(ci->parm, parm, len)) {
             if(len >= max) {
                 max = len;
@@ -190,14 +198,24 @@ static CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
     return crnt;
 }
 
-static void increment_index(Cmd* cmd) {
+static char* get_token(Cmd* cmd) {
 
-    //cmd->index ++;
+    return cmd->token;
+}
 
-    if(cmd->index < cmd->max_args)
+static char* consume_token(Cmd* cmd) {
+
+    if(cmd->token != NULL)
+        _FREE(cmd->token);
+
+    if(cmd->index < cmd->max_args) {
+        cmd->token = _DUP_STR(cmd->line[cmd->index]);
         cmd->index++;
+    }
     else
-        show_error(cmd, "expected a command parameter");
+        cmd->token = NULL;
+
+    return cmd->token;
 }
 
 static void save_cmd(Cmd* cmd, CmdItem* ci, const char* str) {
@@ -208,13 +226,19 @@ static void save_cmd(Cmd* cmd, CmdItem* ci, const char* str) {
         ci->flag |= CMD_SEEN;
 
     if(ci->flag & CMD_BOOL)
-        ci->bval = true;
-    else if(ci->flag & (CMD_LIST|CMD_STR|CMD_INT|CMD_FLOAT))
+        ci->bval = ci->bval? false: true;
+    else if(ci->flag & (CMD_LIST|CMD_STR|CMD_INT|CMD_FLOAT)) {
+#if 0
+// Future enhancement: Support commas to create a list in a single parameter.
+// for example: -x=123,abc,qwe,238 would be a list of 4 items connected to -x
+#endif
         add_str_list(ci->list, create_string(str));
+    }
     else
         show_error(cmd, "invalid flag value: 0x%02X", ci->flag);
 }
 
+// this does not check if the first character is a '-' or a ':'
 static void get_cats(Cmd* cmd, CmdItem* ci, int len, char* str) {
 
     char* tpt = &str[len];
@@ -224,19 +248,20 @@ static void get_cats(Cmd* cmd, CmdItem* ci, int len, char* str) {
     save_cmd(cmd, ci, tpt);
 }
 
-static void get_dash(Cmd* cmd, CmdItem* ci, char** argv) {
+static void get_dash(Cmd* cmd, CmdItem* ci) {
 
-    char* str = argv[cmd->index];
+    char* str = get_token(cmd);
     size_t len = strlen(ci->parm);
 
     if(strlen(str) != len)
         get_cats(cmd, ci, (int)len, str);
+    else if(ci->flag & CMD_BOOL)
+        ci->bval = ci->bval? false: true;
     else {
-        increment_index(cmd);
-        if(cmd->index < cmd->max_args) {
-            str = argv[cmd->index];
+        str = consume_token(cmd);
+        if(str != NULL) {
             if(str[0] == '-')
-                show_error(cmd, "a command argument cannot start with a '-': \"%s\"", str);
+                show_error(cmd, "a command argument cannot start with a '-': \"%s\" (use a '=' or ':')", str);
             else
                 save_cmd(cmd, ci, str);
         }
@@ -246,10 +271,10 @@ static void get_dash(Cmd* cmd, CmdItem* ci, char** argv) {
 }
 
 // get one command line argument.
-static void get_cmd(Cmd* cmd, char** argv) {
+static void get_cmd(Cmd* cmd) {
 
     CmdItem* ci;
-    const char* str = argv[cmd->index];
+    const char* str = get_token(cmd);
     if(str[0] == '-') {
         // have a defined command
         ci = find_by_parm(cmd, str);
@@ -259,7 +284,7 @@ static void get_cmd(Cmd* cmd, char** argv) {
                 exit(0);
             }
             else
-                get_dash(cmd, ci, argv);
+                get_dash(cmd, ci);
         }
         else
             show_error(cmd, "unknown command line argument: %s", str);
@@ -275,19 +300,23 @@ static void get_cmd(Cmd* cmd, char** argv) {
             show_error(cmd, "unexpected stand-alone argument: %s", str);
     }
 
-    increment_index(cmd);
+    consume_token(cmd);
 }
 
 /*************************************************************************
+ *************************************************************************
  * API
- */
+ *************************************************************************
+ ************************************************************************/
 
 CmdLine create_cmd_line(const char* description) {
 
     Cmd* ptr = _ALLOC_T(Cmd);
     ptr->desc = _DUP_STR(description);
     ptr->fname = NULL;
-    ptr->items = create_ci_list();
+    ptr->table = create_ci_list();
+    ptr->index = 0;
+    ptr->max_args = 0;
 
     return ptr;
 }
@@ -299,7 +328,7 @@ void destroy_cmd_line(CmdLine cl) {
         _FREE(ptr->desc);
         if(ptr->fname != NULL)
             _FREE(ptr->fname);
-        destroy_ci_list(ptr->items);
+        destroy_ci_list(ptr->table);
         _FREE(ptr);
     }
 }
@@ -321,8 +350,8 @@ void add_cmd(CmdLine cl,
         exit(1);
     }
     else {
-        reset_ci_list(cmd->items);
-        while(NULL != (ci = iterate_ci_list(cmd->items))) {
+        reset_ci_list(cmd->table);
+        while(NULL != (ci = iterate_ci_list(cmd->table))) {
             if(!strcmp(ci->parm, parm)) {
                 fprintf(stderr, "cmd dev error: attempt to create duplicate parameter: %s\n", name);
                 exit(1);
@@ -339,7 +368,7 @@ void add_cmd(CmdLine cl,
     else
         ci->bval = false;
 
-    add_ci_list(cmd->items, ci);
+    add_ci_list(cmd->table, ci);
 }
 
 Str* get_cmd_str(CmdLine cl, const char* name) {
@@ -408,15 +437,19 @@ void parse_cmd_line(CmdLine cl, int argc, char** argv) {
 
     Cmd* cmd = (Cmd*)cl;
     cmd->fname = _DUP_STR(argv[0]);
+    cmd->line = argv;
     cmd->max_args = argc;
     cmd->index = 1;
+    consume_token(cmd); // prime the pump
 
-    while(cmd->index < cmd->max_args)
-        get_cmd(cmd, argv);
+    while(get_token(cmd) != NULL) {
+        get_cmd(cmd);
+    }
 
+    // make sure that all of the required parameters have been seen
     CmdItem* ci;
-    reset_ci_list(cmd->items);
-    while(NULL != (ci = iterate_ci_list(cmd->items))) {
+    reset_ci_list(cmd->table);
+    while(NULL != (ci = iterate_ci_list(cmd->table))) {
         if(ci->flag & CMD_REQD && !(ci->flag & CMD_SEEN)) {
             if(strlen(ci->parm) == 0)
                 show_error(cmd, "required file list not seen");
@@ -432,8 +465,8 @@ void dump_cmd_line(CmdLine cl) {
     Cmd* cmd = (Cmd*)cl;
     CmdItem* ci;
 
-    reset_ci_list(cmd->items);
-    while(NULL != (ci = iterate_ci_list(cmd->items))) {
+    reset_ci_list(cmd->table);
+    while(NULL != (ci = iterate_ci_list(cmd->table))) {
         printf("%s:\n", ci->name);
         printf("    %s -- %s\n", ci->parm, ci->help);
         printf("    flags: (CMD_NONE");

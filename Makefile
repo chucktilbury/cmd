@@ -14,12 +14,12 @@ LIBDIRS	=	-L.
 LIBS	=	-lutils -lgc
 CARGS	=	$(CONFIG) -Wall -Wextra -Wpedantic
 
-all: $(TEST)
+all: $(TARGET)
 
 %.o:%.c
 	gcc $(CARGS) $(DEBUG) -c -o $@ $<
 
-libutils.a: $(OBJS)
+$(TARGET): $(OBJS)
 	ar crs $@ $(OBJS)
 
 $(TEST): $(TARGET) $(OBJS)

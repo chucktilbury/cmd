@@ -1,6 +1,10 @@
 # UTIL
 
-This is a library of routines that I find myself using over and over. So, instead of copying them to a new project, I will use this library to capture updates and changes. There is no gurantee that this will remain the same going forward. All of the thigs in this library are very simple and subject to change.
+This is a library of routines that I find myself using over and over. So, instead of copying them to a new project, I will use this library to capture updates and changes. There is no gurantee that this will remain the same going forward. All of the things in this library are very simple and subject to change.
+
+Likely changes that will happen in the future are
+* Expanded handling of strings
+* Sorting for lists
 
 ## MEM
 
