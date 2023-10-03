@@ -459,6 +459,12 @@ void parse_cmd_line(CmdLine cl, int argc, char** argv) {
     }
 }
 
+// Get the command option as a raw string
+const char* get_cmd_raw(CmdLine cl, const char* name) {
+
+    return raw_string(get_cmd_str(cl, name));
+}
+
 // example use and use for debugging....
 void dump_cmd_line(CmdLine cl) {
 

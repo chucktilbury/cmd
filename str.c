@@ -166,3 +166,39 @@ int comp_str(Str* s1, Str* s2) {
 int comp_str_const(Str* s1, const char* s2) {
     return strcmp(s1->buf, s2);
 }
+
+Str* copy_string(Str* str) {
+
+    assert(str != NULL);
+    return create_string(str->buf);
+}
+
+// if the index is <0 then count from the end.
+void truncate_string(Str* str, int index) {
+
+    assert(str != NULL);
+    if(index > 0 && index < str->len)
+        str->buf[index] = 0;
+    else if(index < 0 && ((str->len + index) > 0))
+        str->buf[str->len + index] = 0;
+    else
+        str->buf[0] = 0;
+
+    str->len = strlen(str->buf);
+    str->idx = 0; // reset the index
+}
+
+int len_string(Str* str) {
+
+    assert(str != NULL);
+    return str->len;
+}
+
+void add_string_Str(Str* ptr, Str* str) {
+
+    assert(ptr != NULL);
+    assert(str != NULL);
+
+    add_string_str(ptr, str->buf);
+}
+

@@ -78,6 +78,11 @@ const char* raw_string(Str* ptr);
 int comp_str(Str* s1, Str* s2);
 int comp_str_const(Str* s1, const char* s2);
 
+Str* copy_string(Str* str);
+void truncate_string(Str* str, int index);
+int len_string(Str* str);
+void add_string_Str(Str* ptr, Str* str);
+
 //-----------------------------------------------------------------
 // hash.c
 //-----------------------------------------------------------------
@@ -143,6 +148,7 @@ void parse_cmd_line(CmdLine cl, int argc, char** argv);
 
 // retrieve the value stored by the name, or publish an error.
 Str* get_cmd_str(CmdLine cl, const char* name);
+const char* get_cmd_raw(CmdLine cl, const char* name);
 long int get_cmd_int(CmdLine cl, const char* name);
 unsigned long int get_cmd_unsigned(CmdLine cl, const char* name);
 double get_cmd_float(CmdLine cl, const char* name);
