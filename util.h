@@ -1,22 +1,22 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 //----------------------------------------------
 // mem.c
 //----------------------------------------------
-#define _ALLOC(s)               mem_alloc(s)
-#define _ALLOC_T(t)             (t*)mem_alloc(sizeof(t))
-#define _ALLOC_ARRAY(t, n)      (t*)mem_alloc(sizeof(t)*(n))
-#define _REALLOC(p, s)          mem_realloc((p), (s))
-#define _REALLOC_T(p, t)        (t*)mem_realloc((p), sizeof(t))
-#define _REALLOC_ARRAY(p, t, n) (t*)mem_realloc((p), sizeof(t)*(n))
-#define _DUP_MEM(p, s)          mem_dup((p), (s))
-#define _DUP_MEM_T(p, t)        (t*)mem_dup((p), sizeof(t))
-#define _DUP_STR(p)             mem_dup_str(p)
-#define _FREE(p)                mem_free(((void*)p))
+#define _ALLOC(s) mem_alloc(s)
+#define _ALLOC_T(t) (t*)mem_alloc(sizeof(t))
+#define _ALLOC_ARRAY(t, n) (t*)mem_alloc(sizeof(t) * (n))
+#define _REALLOC(p, s) mem_realloc((p), (s))
+#define _REALLOC_T(p, t) (t*)mem_realloc((p), sizeof(t))
+#define _REALLOC_ARRAY(p, t, n) (t*)mem_realloc((p), sizeof(t) * (n))
+#define _DUP_MEM(p, s) mem_dup((p), (s))
+#define _DUP_MEM_T(p, t) (t*)mem_dup((p), sizeof(t))
+#define _DUP_STR(p) mem_dup_str(p)
+#define _FREE(p) mem_free(((void*)p))
 
 void* mem_alloc(size_t size);
 void* mem_realloc(void* ptr, size_t size);
@@ -109,7 +109,7 @@ typedef enum {
     CMD_NONE = 0x00,
     CMD_REQD = 0x01,
     CMD_LIST = 0x02,
-    CMD_STR  = 0x04,
+    CMD_STR = 0x04,
     CMD_BOOL = 0x08,
     CMD_FLOAT = 0x10,
     CMD_INT = 0x20,
@@ -136,11 +136,11 @@ void destroy_cmd_line(CmdLine cl);
 // flag, then random strings (like file names) will be
 // stored under the name.
 void add_cmd(CmdLine cl,
-                const char* parm,
-                const char* name,
-                const char* help,
-                const char* dvalue,
-                unsigned char flags);
+             const char* parm,
+             const char* name,
+             const char* help,
+             const char* dvalue,
+             unsigned char flags);
 
 // Read the actual command line into the data structure and abort
 // the program if there is an error.

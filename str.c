@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "util.h"
@@ -63,10 +63,10 @@ Str* create_string_fmt(const char* str, ...) {
     size_t len = vsnprintf(NULL, 0, str, args);
     va_end(args);
 
-    char* ptr = _ALLOC(len+1);
+    char* ptr = _ALLOC(len + 1);
 
     va_start(args, str);
-    vsnprintf(ptr, len+1, str, args);
+    vsnprintf(ptr, len + 1, str, args);
     va_end(args);
 
     Str* retv = create_string(ptr);
@@ -87,7 +87,7 @@ void add_string_char(Str* ptr, int ch) {
 
     assert(ptr != NULL);
 
-    if(ptr->len+1 > ptr->cap) {
+    if(ptr->len + 1 > ptr->cap) {
         ptr->cap <<= 1;
         ptr->buf = _REALLOC_ARRAY(ptr->buf, char, ptr->cap);
     }
@@ -103,8 +103,8 @@ void add_string_str(Str* ptr, const char* str) {
     assert(str != NULL);
 
     int len = strlen(str);
-    if(ptr->len+len+1 > ptr->cap) {
-        while(ptr->len+len+1 > ptr->cap)
+    if(ptr->len + len + 1 > ptr->cap) {
+        while(ptr->len + len + 1 > ptr->cap)
             ptr->cap <<= 1;
         ptr->buf = _REALLOC_ARRAY(ptr->buf, char, ptr->cap);
     }
@@ -124,10 +124,10 @@ void add_string_fmt(Str* ptr, const char* str, ...) {
     size_t len = vsnprintf(NULL, 0, str, args);
     va_end(args);
 
-    char* spt = _ALLOC(len+1);
+    char* spt = _ALLOC(len + 1);
 
     va_start(args, str);
-    vsnprintf(spt, len+1, str, args);
+    vsnprintf(spt, len + 1, str, args);
     va_end(args);
 
     add_string_str(ptr, spt);
@@ -201,4 +201,3 @@ void add_string_Str(Str* ptr, Str* str) {
 
     add_string_str(ptr, str->buf);
 }
-

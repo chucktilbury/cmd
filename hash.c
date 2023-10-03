@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "util.h"
 
@@ -230,4 +229,3 @@ HashResult HashRemove(HashTable ht, const char* key) {
 
     return HASH_NF;
 }
-

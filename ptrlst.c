@@ -29,7 +29,7 @@ void add_ptr_list(PtrList* lst, void* ptr) {
 
     assert(lst != NULL);
 
-    if(lst->len+1 > lst->cap) {
+    if(lst->len + 1 > lst->cap) {
         lst->cap <<= 1;
         lst->list = _REALLOC_ARRAY(lst->list, void*, lst->cap);
     }
@@ -74,7 +74,7 @@ void* peek_ptr_list(PtrList* lst) {
 
     assert(lst != NULL);
     if(lst->len > 0)
-        return lst->list[lst->len-1];
+        return lst->list[lst->len - 1];
     else
         return NULL;
 }
@@ -89,4 +89,3 @@ void* pop_ptr_list(PtrList* lst) {
 
     return peek_ptr_list(lst);
 }
-

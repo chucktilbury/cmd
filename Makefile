@@ -27,3 +27,6 @@ $(TEST): $(TARGET) $(OBJS)
 
 clean:
 	rm -f $(TEST) $(TARGET) $(OBJS)
+
+format: clean
+	clang-format -i mem.c ptrlst.c str.c hash.c cmd.c util.h

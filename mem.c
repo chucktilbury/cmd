@@ -51,7 +51,7 @@ void* mem_dup(void* ptr, size_t size) {
 
 char* mem_dup_str(const char* str) {
 
-    return (char*)mem_dup((void*)str, strlen(str)+1);
+    return (char*)mem_dup((void*)str, strlen(str) + 1);
 }
 
 void mem_free(void* ptr) {

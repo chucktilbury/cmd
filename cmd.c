@@ -1,20 +1,20 @@
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <assert.h>
 
 #include "util.h"
 
 // Individual command line item.
 typedef struct {
-    const char* parm;       // string recognized from the command line
-    const char* name;       // name to access the param by
-    const char* help;       // help string for this item
-    CmdFlag flag;           // Flags controling the behavior of this item
+    const char* parm; // string recognized from the command line
+    const char* name; // name to access the param by
+    const char* help; // help string for this item
+    CmdFlag flag;     // Flags controling the behavior of this item
     // all parameters are a list. A str is a single item.
     StrList* list;
     // A boolean value is always initialized to false and it set to true
@@ -22,8 +22,7 @@ typedef struct {
     bool bval;
 } CmdItem;
 
-static CmdItem* create_item(const char* parm,
-                        const char* name, const char* help, CmdFlag flag) {
+static CmdItem* create_item(const char* parm, const char* name, const char* help, CmdFlag flag) {
 
     CmdItem* ci = _ALLOC_T(CmdItem);
     ci->parm = _DUP_STR(parm);
@@ -112,7 +111,8 @@ static void show_help(Cmd* ptr) {
     printf("\n\n%s\n\n", ptr->desc);
     reset_ci_list(ptr->table);
     while(NULL != (ci = iterate_ci_list(ptr->table))) {
-        printf(" %*s%*s ", (int)(len+(strlen(ci->parm)/2)), ci->parm, (int)(len-(strlen(ci->parm)/2)), "");
+        printf(" %*s%*s ", (int)(len + (strlen(ci->parm) / 2)), ci->parm,
+               (int)(len - (strlen(ci->parm) / 2)), "");
 
         if(ci->flag & CMD_STR)
             printf("(STR)   ");
@@ -175,17 +175,17 @@ static CmdItem* find_by_parm(Cmd* ptr, const char* parm) {
 
     assert(ptr != NULL);
     assert(parm != NULL);
-    CmdItem* ci, *crnt = NULL;
+    CmdItem *ci, *crnt = NULL;
     int len = 0, max = 0, plen = strlen(parm);
 
     reset_ci_list(ptr->table);
     while(NULL != (ci = iterate_ci_list(ptr->table))) {
         len = strlen(ci->parm);
 #if 1
-// if you want file list items with a leading '-' and/or you don't want to
-// fail them as invalid command switches, then define this out.
+        // if you want file list items with a leading '-' and/or you don't want
+        // to fail them as invalid command switches, then define this out.
         if(len == 0 && plen != 0)
-            continue;  // case where len is zero causes invalid hits.
+            continue; // case where len is zero causes invalid hits.
 #endif
         if(!strncmp(ci->parm, parm, len)) {
             if(len >= max) {
@@ -226,8 +226,8 @@ static void save_cmd(Cmd* cmd, CmdItem* ci, const char* str) {
         ci->flag |= CMD_SEEN;
 
     if(ci->flag & CMD_BOOL)
-        ci->bval = ci->bval? false: true;
-    else if(ci->flag & (CMD_LIST|CMD_STR|CMD_INT|CMD_FLOAT)) {
+        ci->bval = ci->bval ? false : true;
+    else if(ci->flag & (CMD_LIST | CMD_STR | CMD_INT | CMD_FLOAT)) {
 #if 0
 // Future enhancement: Support commas to create a list in a single parameter.
 // for example: -x=123,abc,qwe,238 would be a list of 4 items connected to -x
@@ -256,12 +256,13 @@ static void get_dash(Cmd* cmd, CmdItem* ci) {
     if(strlen(str) != len)
         get_cats(cmd, ci, (int)len, str);
     else if(ci->flag & CMD_BOOL)
-        ci->bval = ci->bval? false: true;
+        ci->bval = ci->bval ? false : true;
     else {
         str = consume_token(cmd);
         if(str != NULL) {
             if(str[0] == '-')
-                show_error(cmd, "a command argument cannot start with a '-': \"%s\" (use a '=' or ':')", str);
+                show_error(cmd, "a command argument cannot start with a '-': \"%s\" (use a '=' or ':')",
+                           str);
             else
                 save_cmd(cmd, ci, str);
         }
@@ -334,11 +335,11 @@ void destroy_cmd_line(CmdLine cl) {
 }
 
 void add_cmd(CmdLine cl,
-                const char* parm,
-                const char* name,
-                const char* help,
-                const char* dvalue,
-                unsigned char flags) {
+             const char* parm,
+             const char* name,
+             const char* help,
+             const char* dvalue,
+             unsigned char flags) {
 
     assert(cl != NULL);
     CmdItem* ci;
@@ -353,7 +354,8 @@ void add_cmd(CmdLine cl,
         reset_ci_list(cmd->table);
         while(NULL != (ci = iterate_ci_list(cmd->table))) {
             if(!strcmp(ci->parm, parm)) {
-                fprintf(stderr, "cmd dev error: attempt to create duplicate parameter: %s\n", name);
+                fprintf(stderr, "cmd dev error: attempt to create duplicate parameter: %s\n",
+                        name);
                 exit(1);
             }
         }
@@ -476,18 +478,26 @@ void dump_cmd_line(CmdLine cl) {
         printf("%s:\n", ci->name);
         printf("    %s -- %s\n", ci->parm, ci->help);
         printf("    flags: (CMD_NONE");
-        if(ci->flag & CMD_REQD) printf("|CMD_REQD");
-        if(ci->flag & CMD_LIST) printf("|CMD_LIST");
-        if(ci->flag & CMD_STR)  printf("|CMD_STR");
-        if(ci->flag & CMD_BOOL) printf("|CMD_BOOL");
-        if(ci->flag & CMD_SEEN) printf("|CMD_SEEN");
-        if(ci->flag & CMD_HELP) printf("|CMD_HELP");
-        if(ci->flag & CMD_FLOAT) printf("|CMD_FLOAT");
-        if(ci->flag & CMD_INT) printf("|CMD_INT");
+        if(ci->flag & CMD_REQD)
+            printf("|CMD_REQD");
+        if(ci->flag & CMD_LIST)
+            printf("|CMD_LIST");
+        if(ci->flag & CMD_STR)
+            printf("|CMD_STR");
+        if(ci->flag & CMD_BOOL)
+            printf("|CMD_BOOL");
+        if(ci->flag & CMD_SEEN)
+            printf("|CMD_SEEN");
+        if(ci->flag & CMD_HELP)
+            printf("|CMD_HELP");
+        if(ci->flag & CMD_FLOAT)
+            printf("|CMD_FLOAT");
+        if(ci->flag & CMD_INT)
+            printf("|CMD_INT");
         printf(")\n");
         printf("    values: ");
         if(ci->flag & CMD_BOOL)
-            printf("%s\n", (ci->bval)? "true": "false");
+            printf("%s\n", (ci->bval) ? "true" : "false");
         else {
             Str* str;
             reset_str_list(ci->list);
@@ -498,5 +508,3 @@ void dump_cmd_line(CmdLine cl) {
     }
     printf("\n\n");
 }
-
-
