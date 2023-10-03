@@ -1,6 +1,6 @@
 
 TEST	=	cmd
-TARGET	=	libutils.a
+TARGET	=	libutil.a
 OBJS	=	mem.o \
 			ptrlst.o \
 			str.o \
