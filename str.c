@@ -39,6 +39,21 @@ Str* pop_str_list(StrList* lst) {
     return (Str*)pop_ptr_list(lst);
 }
 
+// Join a list where the str is between the elements of the list.
+Str* join_str_list(StrList* lst, const char* str) {
+
+    Str* s = create_string(NULL);
+    Str* tmp;
+
+    reset_str_list(lst);
+    add_string_Str(s, iterate_str_list(lst));
+    while(NULL != (tmp = iterate_str_list(lst))) {
+        add_string_str(s, str);
+        add_string_Str(s, tmp);
+    }
+
+    return s;
+}
 
 Str* create_string(const char* str) {
 

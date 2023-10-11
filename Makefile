@@ -5,28 +5,24 @@ OBJS	=	mem.o \
 			ptrlst.o \
 			str.o \
 			hash.o \
+			fileio.o \
 			cmd.o
 
-DEBUG	=	-g
-EXT		=	-Wno-unused-variable -Wno-sign-compare
-CONFIG	=	-DENA_TRACE -DUSE_GC -lgc
-LIBDIRS	=	-L.
-LIBS	=	-lutils -lgc
-CARGS	=	$(CONFIG) -Wall -Wextra -Wpedantic
+include ../common.make
 
 all: $(TARGET)
 
 %.o:%.c
-	gcc $(CARGS) $(DEBUG) -c -o $@ $<
+	gcc $(BOPTS) -c -o $@ $<
 
 $(TARGET): $(OBJS)
 	ar crs $@ $(OBJS)
 
 $(TEST): $(TARGET) $(OBJS)
-	gcc $(CARGS) $(DEBUG) -o $(TEST) test.c $(LIBDIRS) $(LIBS)
+	gcc $(LOPTS) -o $(TEST) test.c $(LIBDIRS) $(LIBS)
 
 clean:
 	rm -f $(TEST) $(TARGET) $(OBJS)
 
 format: clean
-	clang-format -i mem.c ptrlst.c str.c hash.c cmd.c util.h
+	clang-format -i *.c *.h

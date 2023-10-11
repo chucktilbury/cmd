@@ -65,6 +65,7 @@ Str* iterate_str_list(StrList* lst);
 void push_str_list(StrList* lst, Str* str);
 Str* peek_str_list(StrList* lst);
 Str* pop_str_list(StrList* lst);
+Str* join_str_list(StrList* lst, const char* str);
 
 Str* create_string(const char* str);
 Str* create_string_fmt(const char* str, ...);
@@ -99,6 +100,29 @@ void destroy_hash(HashTable table);
 HashResult insert_hash(HashTable table, const char* key, void* data, size_t size);
 HashResult find_hash(HashTable tab, const char* key, void* data, size_t size);
 HashResult remove_hash(HashTable tab, const char* key);
+
+//-------------------------------------------------------------
+// fileio.c
+//-------------------------------------------------------------
+// The file stack for input files is implicitly defined.
+void open_input_file(const char* fname);
+int get_char();
+int consume_char();
+
+int get_line_no();
+int get_col_no();
+const char* get_fname();
+
+// Since multiple output files can be open in a moment, then it is accessed
+// using an opaque handle.
+typedef void* FPTR;
+FPTR open_output_file(const char* fname);
+void close_output_file(FPTR fp);
+
+void emit_buf(FPTR h, void* buf, unsigned int size);
+void emit_fmt(FPTR h, const char* fmt, ...);
+void emit_Str(FPTR h, Str* str);
+void emit_str(FPTR h, const char* str);
 
 //-------------------------------------------------------------
 // cmd.c
