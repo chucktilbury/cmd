@@ -7,6 +7,8 @@ OBJS	=	mem.o \
 			hash.o \
 			fileio.o \
 			except.o \
+			error.o \
+			logging.o \
 			cmd.o
 
 WARNS	=	-Wno-unused-variable -Wno-sign-compare

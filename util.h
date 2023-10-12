@@ -9,6 +9,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <setjmp.h>
+#include <ctype.h>
+#include <assert.h>
+#include <errno.h>
 
 //----------------------------------------------
 // mem.c
@@ -29,6 +32,34 @@ void* mem_realloc(void* ptr, size_t size);
 void* mem_dup(void* ptr, size_t size);
 char* mem_dup_str(const char* str);
 void mem_free(void* ptr);
+
+//------------------------------------------------------
+// error.c
+//------------------------------------------------------
+// Simple error routines
+// Most applications with just use this.
+void generic_error_msg(const char* preamble, const char* fmt, ...);
+// Convience functions
+void error(const char* fmt, ...);
+void warning(const char* fmt, ...);
+void fatal(const char* fmt, ...);
+// Only the convience functions update these.
+int get_errors();
+int get_warnings();
+
+//------------------------------------------------------
+// logging.c
+//------------------------------------------------------
+//Simple logger for printing messages from code.
+typedef struct {
+	FILE* stream;
+	int level;
+	const char* preamble;
+} Logger;
+
+Logger* init_logger(FILE* fp, int vlevel, const char* pre, ...);
+void destroy_logger(Logger* lgr);
+void logger(Logger* lgr, int level, const char* fmt, ...);
 
 //------------------------------------------------------
 // ptrlst.c
