@@ -33,22 +33,6 @@
 
 #include "util.h"
 
-typedef struct {
-    const char* key;
-    void* data;
-    size_t size;
-} _hash_node;
-
-/*
- * If a node's key is NULL, but the bucket pointer in the table
- * is not NULL, then the bucket is a tombstone.
- */
-typedef struct {
-    _hash_node** table;
-    int cap;
-    int count;
-    int tombstones;
-} _hash_table;
 
 static uint32_t hash_func(const char* key) {
 
@@ -63,7 +47,7 @@ static uint32_t hash_func(const char* key) {
     return hash;
 }
 
-static int find_slot(_hash_table* tab, const char* key) {
+static int find_slot(HashTable* tab, const char* key) {
 
     uint32_t hash = hash_func(key) & (tab->cap - 1);
     int inc = hash & 0x0F;
@@ -98,7 +82,7 @@ static int find_slot(_hash_table* tab, const char* key) {
     return -1; // keep the compiler happy
 }
 
-static void rehash_table(_hash_table* tab) {
+static void rehash_table(HashTable* tab) {
 
     if(tab->count * 1.75 > tab->cap) {
         int oldcap = tab->cap;
@@ -122,9 +106,9 @@ static void rehash_table(_hash_table* tab) {
     }
 }
 
-HashTable create_hash() {
+HashTable* create_hashtable() {
 
-    _hash_table* tab = _ALLOC_T(_hash_table);
+    HashTable* tab = _ALLOC_T(HashTable);
 
     tab->count = 0;
     tab->cap = 0x01 << 3;
@@ -136,9 +120,7 @@ HashTable create_hash() {
     return tab;
 }
 
-void HashDestroy(HashTable ht) {
-
-    _hash_table* table = (_hash_table*)ht;
+void destroy_hashtable(HashTable* table) {
 
     if(table != NULL) {
         for(int i = 0; i < table->cap; i++) {
@@ -156,9 +138,9 @@ void HashDestroy(HashTable ht) {
     }
 }
 
-HashResult HashInsert(HashTable ht, const char* key, void* data, size_t size) {
+HashResult insert_hashtable(HashTable* table,
+					const char* key, void* data, size_t size) {
 
-    _hash_table* table = (_hash_table*)ht;
     rehash_table(table);
 
     int slot = find_slot(table, key);
@@ -189,9 +171,7 @@ HashResult HashInsert(HashTable ht, const char* key, void* data, size_t size) {
     return HASH_OK;
 }
 
-HashResult HashFind(HashTable ht, const char* key, void* data, size_t size) {
-
-    _hash_table* tab = (_hash_table*)ht;
+HashResult find_hashtable(HashTable* tab, const char* key, void* data, size_t size) {
 
     int slot = find_slot(tab, key);
 
@@ -208,9 +188,7 @@ HashResult HashFind(HashTable ht, const char* key, void* data, size_t size) {
     return HASH_NF;
 }
 
-HashResult HashRemove(HashTable ht, const char* key) {
-
-    _hash_table* tab = (_hash_table*)ht;
+HashResult remove_hashtable(HashTable* tab, const char* key) {
 
     int slot = find_slot(tab, key);
 

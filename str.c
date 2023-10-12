@@ -216,3 +216,17 @@ void add_string_Str(Str* ptr, Str* str) {
 
     add_string_str(ptr, str->buf);
 }
+
+void print_string(FILE* fp, Str* str) {
+
+    fprintf(fp, "%s", raw_string(str));
+}
+
+void printf_string(FILE* fp, Str* str, ...) {
+
+    va_list args;
+
+    va_start(args, str);
+    vfprintf(fp, raw_string(str), args);
+    va_end(args);
+}

@@ -3,6 +3,12 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include <setjmp.h>
 
 //----------------------------------------------
 // mem.c
@@ -83,11 +89,29 @@ Str* copy_string(Str* str);
 void truncate_string(Str* str, int index);
 int len_string(Str* str);
 void add_string_Str(Str* ptr, Str* str);
+void print_string(FILE* fp, Str* str);
+void printf_string(FILE* fp, Str* str, ...);
 
 //-----------------------------------------------------------------
 // hash.c
 //-----------------------------------------------------------------
-typedef void* HashTable;
+
+typedef struct {
+    const char* key;
+    void* data;
+    size_t size;
+} _hash_node;
+
+/*
+ * If a node's key is NULL, but the bucket pointer in the table
+ * is not NULL, then the bucket is a tombstone.
+ */
+typedef struct {
+    _hash_node** table;
+    int cap;
+    int count;
+    int tombstones;
+} HashTable;
 
 typedef enum {
     HASH_OK,
@@ -95,11 +119,11 @@ typedef enum {
     HASH_NF,
 } HashResult;
 
-HashTable create_hash();
-void destroy_hash(HashTable table);
-HashResult insert_hash(HashTable table, const char* key, void* data, size_t size);
-HashResult find_hash(HashTable tab, const char* key, void* data, size_t size);
-HashResult remove_hash(HashTable tab, const char* key);
+HashTable* create_hashtable();
+void destroy_hashtable(HashTable* table);
+HashResult insert_hashtable(HashTable* table, const char* key, void* data, size_t size);
+HashResult find_hashtable(HashTable* tab, const char* key, void* data, size_t size);
+HashResult remove_hashtable(HashTable* tab, const char* key);
 
 //-------------------------------------------------------------
 // fileio.c
@@ -182,5 +206,109 @@ CmdFlag get_cmd_flag(CmdLine cl, const char* name);
 
 // Print out the current state of the data structures for debugging.
 void dump_cmd_line(CmdLine cl);
+
+//------------------------------------------------------------------------------
+//
+// except.c
+//
+//------------------------------------------------------------------------------
+// This implementation of exceptions is used to handler errors. THere are no
+// classes in C. This uses an enum to register an exception handler by name.
+// Using the non-local goto functionality and the preprocessor of C, a
+// reasonably easy to maintain exception capability can be achieved. This has to
+// use macros because the current context in the function that handles the
+// exceptions is required.
+
+// These data structures should never be accessed directly.
+// They need to be defined here because of the macros.
+typedef struct _exception_stack_ {
+    jmp_buf jmp;
+    struct _exception_stack_* next;
+} _ExceptionStack;
+
+typedef struct {
+    _ExceptionStack* stack;
+    const char* msg;
+    const char* file;
+    const char* func;
+    int line;
+} _ExceptionState;
+
+// defined in exceptions.c
+// This prevents exceptions from being thread safe without a lot more work.
+extern _ExceptionState _exception_state;
+
+// Set up a try block
+#define TRY                                                         \
+    do {                                                            \
+        _ExceptionStack* _exception_ptr = _ALLOC_T(_ExceptionStack); \
+        _exception_ptr->next = _exception_state.stack;              \
+        _exception_state.stack = _exception_ptr;                    \
+        int _exception_number = setjmp(_exception_ptr->jmp);        \
+        if(_exception_number == 0)
+
+// Catch a specific exception
+#define EXCEPT(num) else if(_exception_number == (num))
+
+// Catch any exception. This can be used with the FINAL macro or it can be
+// ued instead of it.
+#define ANY_EXCEPT() else if(_exception_number != 0)
+
+// FINAL and/or ANY_EXCEPT clause is REQUIRED for the system to work, and it
+// MUST be the last clause in the construct.
+#define FINAL                                                                      \
+    else {                                                                         \
+        if(_exception_state.stack == NULL) {                                             \
+            fprintf(stderr, "ERROR: unhandled exception 0x%04X: %s: %s: %d: %s\n", \
+                    EXCEPTION_NUM, EXCEPTION_FILE, EXCEPTION_FUNC,             \
+                    EXCEPTION_LINE, EXCEPTION_MSG);                                \
+            abort();                                                               \
+        }                                                                          \
+        else {                                                                     \
+            INTERNAL_RAISE(_exception_number);                                     \
+        }                                                                          \
+    }                                                                              \
+    }                                                                              \
+    while(0)                                                                       \
+        ;
+
+// use this to raise an exception
+#define RAISE(num, m)                             \
+    do {                                            \
+        _exception_state.line = __LINE__;           \
+        if(_exception_state.file != NULL)           \
+            _FREE(_exception_state.file);           \
+        _exception_state.file = _DUP_STR(__FILE__); \
+        if(_exception_state.func != NULL)           \
+            _FREE(_exception_state.func);           \
+        _exception_state.func = _DUP_STR(__func__); \
+        if(_exception_state.msg != NULL)            \
+            _FREE(_exception_state.msg);            \
+        _exception_state.msg = _DUP_STR(m);       \
+        INTERNAL_RAISE(num);                        \
+    } while(0)
+
+// internal use only
+#define INTERNAL_RAISE(num)                                 \
+    do {                                                    \
+        jmp_buf buf;                                        \
+        _ExceptionStack* ptr = _exception_state.stack;      \
+        if(ptr != NULL)                                     \
+            memcpy(buf, ptr->jmp, sizeof(jmp_buf));         \
+        else {                                              \
+            fprintf(stderr, "Exception internal error!\n"); \
+            abort();                                        \
+        }                                                   \
+        _exception_state.stack = ptr->next;                 \
+        _FREE(ptr);                                         \
+        longjmp(buf, (num));                                \
+    } while(0)
+
+// use these macros in your exception handler
+#define EXCEPTION_MSG _exception_state.msg
+#define EXCEPTION_FILE _exception_state.file
+#define EXCEPTION_LINE _exception_state.line
+#define EXCEPTION_FUNC _exception_state.func
+#define EXCEPTION_NUM   _exception_number
 
 #endif /* _UTIL_H */
