@@ -1,12 +1,11 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <setjmp.h>
 #include <ctype.h>
@@ -32,34 +31,6 @@ void* mem_realloc(void* ptr, size_t size);
 void* mem_dup(void* ptr, size_t size);
 char* mem_dup_str(const char* str);
 void mem_free(void* ptr);
-
-//------------------------------------------------------
-// error.c
-//------------------------------------------------------
-// Simple error routines
-// Most applications with just use this.
-void generic_error_msg(const char* preamble, const char* fmt, ...);
-// Convience functions
-void error(const char* fmt, ...);
-void warning(const char* fmt, ...);
-void fatal(const char* fmt, ...);
-// Only the convience functions update these.
-int get_errors();
-int get_warnings();
-
-//------------------------------------------------------
-// logging.c
-//------------------------------------------------------
-//Simple logger for printing messages from code.
-typedef struct {
-	FILE* stream;
-	int level;
-	const char* preamble;
-} Logger;
-
-Logger* init_logger(FILE* fp, int vlevel, const char* pre, ...);
-void destroy_logger(Logger* lgr);
-void logger(Logger* lgr, int level, const char* fmt, ...);
 
 //------------------------------------------------------
 // ptrlst.c
@@ -113,8 +84,8 @@ void add_string_fmt(Str* ptr, const char* str, ...);
 void reset_string(Str* ptr);
 int iterate_string(Str* ptr);
 const char* raw_string(Str* ptr);
-int comp_str(Str* s1, Str* s2);
-int comp_str_const(Str* s1, const char* s2);
+int comp_string(Str* s1, Str* s2);
+int comp_string_const(Str* s1, const char* s2);
 
 Str* copy_string(Str* str);
 void truncate_string(Str* str, int index);
@@ -270,12 +241,12 @@ typedef struct {
 extern _ExceptionState _exception_state;
 
 // Set up a try block
-#define TRY                                                         \
-    do {                                                            \
+#define TRY                                                          \
+    do {                                                             \
         _ExceptionStack* _exception_ptr = _ALLOC_T(_ExceptionStack); \
-        _exception_ptr->next = _exception_state.stack;              \
-        _exception_state.stack = _exception_ptr;                    \
-        int _exception_number = setjmp(_exception_ptr->jmp);        \
+        _exception_ptr->next = _exception_state.stack;               \
+        _exception_state.stack = _exception_ptr;                     \
+        int _exception_number = setjmp(_exception_ptr->jmp);         \
         if(_exception_number == 0)
 
 // Catch a specific exception
@@ -289,9 +260,9 @@ extern _ExceptionState _exception_state;
 // MUST be the last clause in the construct.
 #define FINAL                                                                      \
     else {                                                                         \
-        if(_exception_state.stack == NULL) {                                             \
+        if(_exception_state.stack == NULL) {                                       \
             fprintf(stderr, "ERROR: unhandled exception 0x%04X: %s: %s: %d: %s\n", \
-                    EXCEPTION_NUM, EXCEPTION_FILE, EXCEPTION_FUNC,             \
+                    EXCEPTION_NUM, EXCEPTION_FILE, EXCEPTION_FUNC,                 \
                     EXCEPTION_LINE, EXCEPTION_MSG);                                \
             abort();                                                               \
         }                                                                          \
@@ -304,7 +275,7 @@ extern _ExceptionState _exception_state;
         ;
 
 // use this to raise an exception
-#define RAISE(num, m)                             \
+#define RAISE(num, m)                               \
     do {                                            \
         _exception_state.line = __LINE__;           \
         if(_exception_state.file != NULL)           \
@@ -315,7 +286,7 @@ extern _ExceptionState _exception_state;
         _exception_state.func = _DUP_STR(__func__); \
         if(_exception_state.msg != NULL)            \
             _FREE(_exception_state.msg);            \
-        _exception_state.msg = _DUP_STR(m);       \
+        _exception_state.msg = _DUP_STR(m);         \
         INTERNAL_RAISE(num);                        \
     } while(0)
 
@@ -340,6 +311,6 @@ extern _ExceptionState _exception_state;
 #define EXCEPTION_FILE _exception_state.file
 #define EXCEPTION_LINE _exception_state.line
 #define EXCEPTION_FUNC _exception_state.func
-#define EXCEPTION_NUM   _exception_number
+#define EXCEPTION_NUM _exception_number
 
 #endif /* _UTIL_H */

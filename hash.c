@@ -138,8 +138,7 @@ void destroy_hashtable(HashTable* table) {
     }
 }
 
-HashResult insert_hashtable(HashTable* table,
-					const char* key, void* data, size_t size) {
+HashResult insert_hashtable(HashTable* table, const char* key, void* data, size_t size) {
 
     rehash_table(table);
 

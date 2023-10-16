@@ -24,8 +24,10 @@ void dump(HashTable* tab) {
 
 int main() {
 
-    const char* keys[] = { "qwer", "asdf", "zxcv", "wert", "sdfg", "xcvb", "erty", "dfgh", "cvbn", "rtyu",
-                           "fghj", "vbnm", "tyui", "ghjk", "bnm",  "yuio", "hjkl", "uiop", "jkl",  NULL };
+    const char* keys[] = { "qwer", "asdf", "zxcv", "wert", "sdfg",
+                           "xcvb", "erty", "dfgh", "cvbn", "rtyu",
+                           "fghj", "vbnm", "tyui", "ghjk", "bnm",
+                           "yuio", "hjkl", "uiop", "jkl",  NULL };
 
     HashTable* table = create_hashtable();
     long value;
@@ -67,7 +69,7 @@ int main() {
 
     long val;
     char* str = "ghjk";
-    bool res  = find_hashtable(table, str, &val, sizeof(val));
+    bool res = find_hashtable(table, str, &val, sizeof(val));
     printf("find: %s: %s: %lu\n", str, res ? "true" : "false", val);
     val = 0;
 
@@ -88,4 +90,3 @@ int main() {
 
     return 0;
 }
-

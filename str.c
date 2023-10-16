@@ -174,11 +174,11 @@ const char* raw_string(Str* ptr) {
     return ptr->buf;
 }
 
-int comp_str(Str* s1, Str* s2) {
+int comp_string(Str* s1, Str* s2) {
     return strcmp(s1->buf, s2->buf);
 }
 
-int comp_str_const(Str* s1, const char* s2) {
+int comp_string_const(Str* s1, const char* s2) {
     return strcmp(s1->buf, s2);
 }
 
