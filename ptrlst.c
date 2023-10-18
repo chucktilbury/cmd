@@ -9,7 +9,6 @@ PtrList* create_ptr_list() {
     PtrList* ptr = _ALLOC_T(PtrList);
     ptr->cap = 1 << 3;
     ptr->len = 0;
-    ptr->idx = 0;
     ptr->list = _ALLOC_ARRAY(void*, ptr->cap);
 
     return ptr;
@@ -39,22 +38,31 @@ void add_ptr_list(PtrList* lst, void* ptr) {
 }
 
 // Reset the iterator to the beginning of the list. There is no return value.
-void reset_ptr_list(PtrList* lst) {
+PtrListIter* init_ptr_list_iter(PtrList* lst) {
 
     assert(lst != NULL);
-    lst->idx = 0;
+
+    PtrListIter* ptr = _ALLOC_T(PtrListIter);
+    ptr->list = lst;
+    ptr->idx = 0;
+
+    return ptr;
 }
 
 // Iterate pointer list. When there are no more items to iterate, then return
 // a NULL pointer.
-void* iterate_ptr_list(PtrList* lst) {
+void* iterate_ptr_list(PtrListIter* iter, PtrList* lst) {
 
     assert(lst != NULL);
     void* ptr = NULL;
 
-    if(lst->idx < lst->len) {
-        ptr = lst->list[lst->idx];
-        lst->idx++;
+    if(iter->idx < lst->len) {
+        ptr = lst->list[iter->idx];
+        iter->idx++;
+    }
+    else {
+        // destroy the iterator but not the list.
+        _FREE(iter);
     }
 
     return ptr;

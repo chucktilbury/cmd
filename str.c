@@ -19,12 +19,12 @@ void add_str_list(StrList* lst, Str* str) {
     add_ptr_list(lst, str);
 }
 
-void reset_str_list(StrList* lst) {
-    reset_ptr_list(lst);
+StrListIter* init_str_list_iter(StrList* lst) {
+    return init_ptr_list_iter(lst);
 }
 
-Str* iterate_str_list(StrList* lst) {
-    return (Str*)iterate_ptr_list(lst);
+Str* iterate_str_list(StrListIter* sli, StrList* lst) {
+    return (Str*)iterate_ptr_list(sli, lst);
 }
 
 void push_str_list(StrList* lst, Str* str) {
@@ -45,9 +45,9 @@ Str* join_str_list(StrList* lst, const char* str) {
     Str* s = create_string(NULL);
     Str* tmp;
 
-    reset_str_list(lst);
-    add_string_Str(s, iterate_str_list(lst));
-    while(NULL != (tmp = iterate_str_list(lst))) {
+    StrListIter* sli = init_str_list_iter(lst);
+    add_string_Str(s, iterate_str_list(sli, lst));
+    while(NULL != (tmp = iterate_str_list(sli, lst))) {
         add_string_str(s, str);
         add_string_Str(s, tmp);
     }
@@ -192,7 +192,7 @@ Str* copy_string(Str* str) {
 void truncate_string(Str* str, int index) {
 
     assert(str != NULL);
-    if(index > 0 && index < str->len)
+    if(index > 0 && index <= str->len)
         str->buf[index] = 0;
     else if(index < 0 && ((str->len + index) > 0))
         str->buf[str->len + index] = 0;

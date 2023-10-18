@@ -81,18 +81,19 @@ int get_char() {
 int consume_char() {
 
     if(file_stack != NULL) {
-        file_stack->ch = fgetc(file_stack->fp);
         if(file_stack->ch == '\n') {
             file_stack->line_no++;
             file_stack->col_no = 1;
         }
-        else if(file_stack->ch == EOF) {
+        else
+            file_stack->col_no++;
+
+        file_stack->ch = fgetc(file_stack->fp);
+        if(file_stack->ch == EOF) {
             close_input_file();
             // return the current character from the previous file.
             return get_char();
         }
-        else
-            file_stack->col_no++;
 
         return file_stack->ch;
     }

@@ -40,14 +40,19 @@ typedef struct {
     void** list;
     int cap;
     int len;
-    int idx;
 } PtrList;
+
+typedef struct {
+    PtrList* list;
+    int idx;
+} PtrListIter;
 
 PtrList* create_ptr_list();
 void destroy_ptr_list(PtrList* h);
 void add_ptr_list(PtrList* h, void* ptr);
-void reset_ptr_list(PtrList* h);
-void* iterate_ptr_list(PtrList* h);
+PtrListIter* init_ptr_list_iter(PtrList* h);
+void* iterate_ptr_list(PtrListIter *ptr, PtrList* h);
+
 void push_ptr_list(PtrList* h, void* ptr);
 void* peek_ptr_list(PtrList* h);
 void* pop_ptr_list(PtrList* h);
@@ -57,6 +62,7 @@ void* pop_ptr_list(PtrList* h);
 //--------------------------------------------------------
 // Specialize the ptr list to be a str list.
 typedef PtrList StrList;
+typedef PtrListIter StrListIter;
 
 typedef struct {
     char* buf;
@@ -68,8 +74,9 @@ typedef struct {
 StrList* create_str_list();
 void destroy_str_list(StrList* lst);
 void add_str_list(StrList* lst, Str* str);
-void reset_str_list(StrList* lst);
-Str* iterate_str_list(StrList* lst);
+StrListIter* init_str_list_iter(StrList* lst);
+Str* iterate_str_list(StrListIter* ptr, StrList* lst);
+
 void push_str_list(StrList* lst, Str* str);
 Str* peek_str_list(StrList* lst);
 Str* pop_str_list(StrList* lst);
@@ -83,6 +90,7 @@ void add_string_str(Str* ptr, const char* str);
 void add_string_fmt(Str* ptr, const char* str, ...);
 void reset_string(Str* ptr);
 int iterate_string(Str* ptr);
+
 const char* raw_string(Str* ptr);
 int comp_string(Str* s1, Str* s2);
 int comp_string_const(Str* s1, const char* s2);
