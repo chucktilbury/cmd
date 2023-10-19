@@ -1,5 +1,7 @@
-
+cmake_minimum_required(VERSION 3.10)
 project(util)
+
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 add_library(${PROJECT_NAME} STATIC
     fileio.c
@@ -9,6 +11,7 @@ add_library(${PROJECT_NAME} STATIC
     cmd.c
     ptrlst.c
     except.c
+    baselst.c
 )
 
 #target_include_directories(${PROJECT_NAME}
@@ -29,4 +32,29 @@ target_compile_options(${PROJECT_NAME}
         $<$<CONFIG:DEBUG>:-DENA_TRACE >
         $<$<CONFIG:RELEASE>:-Ofast >
         $<$<CONFIG:PROFILE>:-pg -O0 >
+)
+
+add_custom_target(base_test
+    COMMENT "Test the basic list functionality"
+    COMMAND gcc -Wall -Wextra -Wpedantic -g -DUSE_GC -I.. -L. -o base_test ../base_test.c -lutil -lgc
+)
+
+add_custom_target(cmd_test
+    COMMENT "Test the command line functionality"
+    COMMAND gcc -Wall -Wextra -Wpedantic -g -DUSE_GC -I.. -L. -o cmd_test ../cmd_test.c -lutil -lgc
+)
+
+add_custom_target(except_test
+    COMMENT "Test the exceptions functionality"
+    COMMAND gcc -Wall -Wextra -Wpedantic -g -DUSE_GC -I.. -L. -o except_test ../except_test.c -lutil -lgc
+)
+
+add_custom_target(hash_test
+    COMMENT "Test the hash table functionality"
+    COMMAND gcc -Wall -Wextra -Wpedantic -g -DUSE_GC -I.. -L. -o hash_test ../hash_test.c -lutil -lgc
+)
+
+add_custom_target(all_tests
+    COMMENT "Build all tests"
+    COMMAND make base_test && make cmd_test && make except_test && make hash_test
 )

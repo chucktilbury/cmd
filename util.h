@@ -33,6 +33,47 @@ char* mem_dup_str(const char* str);
 void mem_free(void* ptr);
 
 //------------------------------------------------------
+// datalst.c
+//------------------------------------------------------
+// Arbitrary sized data buffer list. All of the elements
+// must be the same size. Copies of the data is saved in
+// the list.
+typedef struct {
+    unsigned char* buffer; // buffer that holds the raw bytes.
+    int cap;    // number of bytes there is room for
+    int len;    // number of bytes in the list.
+    int size;   // number of bytes that each item uses.
+    bool changed; // used when iterating data
+} BaseList;
+
+typedef struct {
+    BaseList* list; // list to iterate
+    int index;      // current index of the data in the list
+} BaseListIter;
+
+typedef enum {
+    BASE_LST_OK,
+    BASE_LST_ERROR,
+    BASE_LST_END,
+} BaseListResult;
+
+BaseList* create_base_list(int size);
+void destroy_base_list(BaseList* lst);
+BaseListResult add_base_list(BaseList* lst, void* data);
+BaseListResult get_base_list(BaseList* lst, int index, void* data);
+BaseListResult ins_base_list(BaseList* lst, int index, void* data);
+BaseListResult del_base_list(BaseList* lst, int index);
+BaseListResult push_base_list(BaseList* lst, void* data);
+BaseListResult peek_base_list(BaseList* lst, void* data);
+BaseListResult pop_base_list(BaseList* lst, void* data);
+// iterator
+BaseListIter* init_base_list_iter(BaseList* lst);
+BaseListResult iter_base_list(BaseListIter* iter, void* data);
+// info about the list
+void* raw_base_list(BaseList* lst);
+int len_base_list(BaseList* lst);
+
+//------------------------------------------------------
 // ptrlst.c
 //------------------------------------------------------
 // generic pointer list.
