@@ -6,7 +6,7 @@ void test_ints() {
     int count = 0;
 
     printf("tests on a list of integers\n");
-    BaseList* lst = create_base_list(sizeof(int));
+    List* lst = create_base_list(sizeof(int));
     int value = 1000;
 
     printf("add 10 items\n");
@@ -31,7 +31,7 @@ void test_ints() {
 
     count = 0;
     printf("using the iterator\n");
-    BaseListIter* iter = init_base_list_iter(lst);
+    ListIter* iter = init_base_list_iter(lst);
     while(iter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
 

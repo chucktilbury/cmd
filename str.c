@@ -28,7 +28,7 @@ Str* create_string(const char* str) {
     // ptr->len = 0;
     // ptr->idx = 0;
     // ptr->buf = _ALLOC_ARRAY(char, ptr->cap);
-    Str* ptr = create_base_list(sizeof(char));
+    Str* ptr = create_list(sizeof(char));
 
     if(str != NULL)
         add_string_str(ptr, str);
@@ -61,7 +61,7 @@ void destroy_string(Str* ptr) {
 
     if(ptr != NULL) {
         //_FREE(ptr->buf);
-        destroy_base_list(ptr);
+        destroy_list(ptr);
         _FREE(ptr);
     }
 }
@@ -78,7 +78,7 @@ void add_string_char(Str* ptr, int ch) {
     // ptr->buf[ptr->len] = ch;
     // ptr->len++;
     // ptr->buf[ptr->len] = 0;
-    add_base_list(ptr, &ch);
+    add_list(ptr, &ch);
 }
 
 void add_string_str(Str* ptr, const char* str) {
@@ -146,10 +146,10 @@ const char* raw_string(Str* ptr) {
 
     // terminate the string
     int ch = 0;
-    push_base_list(ptr, &ch);
-    pop_base_list(ptr, NULL);
+    push_list(ptr, &ch);
+    pop_list(ptr, NULL);
 
-    return (const char*)raw_base_list(ptr);
+    return (const char*)raw_list(ptr);
 }
 
 int comp_string(Str* s1, Str* s2) {
@@ -179,19 +179,19 @@ void truncate_string(Str* str, int index) {
     // str->idx = 0; // reset the index
 
     int val = 0;
-    ins_base_list(str, index, &val);
+    ins_list(str, index, &val);
 }
 
 void clear_string(Str* str) {
 
     truncate_string(str, 0);
-    clr_base_list(str);
+    clr_list(str);
 }
 
 int len_string(Str* str) {
 
     //assert(str != NULL);
-    return len_base_list(str);
+    return len_list(str);
 }
 
 void add_string_Str(Str* ptr, Str* str) {

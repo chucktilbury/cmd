@@ -44,80 +44,80 @@ typedef struct {
     int len;    // number of bytes in the list.
     int size;   // number of bytes that each item uses.
     bool changed; // used when iterating data
-} BaseList;
+} List;
 
 typedef struct {
-    BaseList* list; // list to iterate
+    List* list; // list to iterate
     int index;      // current index of the data in the list
-} BaseListIter;
+} ListIter;
 
 typedef enum {
     LIST_OK,
     LIST_ERROR,
     LIST_END,
     LIST_CHANGED,
-} BaseListResult;
+} ListResult;
 
-BaseList* create_base_list(int size);
-void destroy_base_list(BaseList* lst);
-BaseListResult add_base_list(BaseList* lst, void* data);
-BaseListResult get_base_list(BaseList* lst, int index, void* data);
-BaseListResult ins_base_list(BaseList* lst, int index, void* data);
-BaseListResult del_base_list(BaseList* lst, int index);
-BaseListResult push_base_list(BaseList* lst, void* data);
-BaseListResult peek_base_list(BaseList* lst, void* data);
-BaseListResult pop_base_list(BaseList* lst, void* data);
-BaseListResult clr_base_list(BaseList* lst);
+List* create_list(int size);
+void destroy_list(List* lst);
+ListResult add_list(List* lst, void* data);
+ListResult get_list(List* lst, int index, void* data);
+ListResult ins_list(List* lst, int index, void* data);
+ListResult del_list(List* lst, int index);
+ListResult push_list(List* lst, void* data);
+ListResult peek_list(List* lst, void* data);
+ListResult pop_list(List* lst, void* data);
+ListResult clr_list(List* lst);
 // iterator
-BaseListIter* init_base_list_iter(BaseList* lst);
-BaseListResult iter_base_list(BaseListIter* iter, void* data);
-BaseListIter* init_base_list_riter(BaseList* lst);
-BaseListResult riter_base_list(BaseListIter* iter, void* data);
+ListIter* init_list_iter(List* lst);
+ListResult iter_list(ListIter* iter, void* data);
+ListIter* init_list_riter(List* lst);
+ListResult riter_list(ListIter* iter, void* data);
 // info about the list
-void* raw_base_list(BaseList* lst);
-int len_base_list(BaseList* lst);
+void* raw_list(List* lst);
+int len_list(List* lst);
 
 //------------------------------------------------------
 // ptrlst.c
 //------------------------------------------------------
 // generic pointer list.
-typedef BaseList PtrList;
-typedef BaseListIter PtrListIter;
+typedef List PtrList;
+typedef ListIter PtrListIter;
 
 static inline PtrList* create_ptr_list() {
-    return create_base_list(sizeof(void*));
+    return create_list(sizeof(void*));
 }
 
 static inline void destroy_ptr_list(PtrList* h) {
-    destroy_base_list(h);
+    destroy_list(h);
 }
 
 static inline void add_ptr_list(PtrList* h, void* ptr) {
-    if(!(LIST_OK == add_base_list(h, &ptr))) {
+    if(!(LIST_OK == add_list(h, &ptr))) {
         fprintf(stderr, "Fatal Error: Cannot add a pointer to the pointer list.\n");
         exit(1);
     }
 }
 
 static inline PtrListIter* init_ptr_list_iter(PtrList* h) {
-    return init_base_list_iter(h);
+    return init_list_iter(h);
 }
 
 static inline void* iterate_ptr_list(PtrListIter *ptr) {
     void* val;
-    if(LIST_OK == iter_base_list(ptr, &val))
+    if(LIST_OK == iter_list(ptr, &val))
         return val;
     else
         return NULL;
 }
 
 static inline void push_ptr_list(PtrList* h, void* ptr) {
-    push_base_list(h, &ptr);
+    push_list(h, &ptr);
 }
 
 static inline void* peek_ptr_list(PtrList* h) {
     void* val;
-    if(LIST_OK == peek_base_list(h, &val))
+    if(LIST_OK == peek_list(h, &val))
         return val;
     else
         return NULL;
@@ -125,7 +125,7 @@ static inline void* peek_ptr_list(PtrList* h) {
 
 static inline void* pop_ptr_list(PtrList* h) {
     void* val;
-    if(LIST_OK == pop_base_list(h, &val))
+    if(LIST_OK == pop_list(h, &val))
         return val;
     else
         return NULL;
@@ -135,9 +135,9 @@ static inline void* pop_ptr_list(PtrList* h) {
 // str.c
 //--------------------------------------------------------
 // Specialize the ptr list to be a str list.
-typedef BaseList StrList;
-typedef BaseListIter StrListIter;
-typedef BaseList Str;
+typedef List StrList;
+typedef ListIter StrListIter;
+typedef List Str;
 
 /*
 typedef struct {
@@ -172,40 +172,40 @@ void print_string(FILE* fp, Str* str);
 void printf_string(FILE* fp, Str* str, ...);
 
 static inline StrList* create_str_list() {
-    return create_base_list(sizeof(void*));
+    return create_list(sizeof(void*));
 }
 
 static inline void destroy_str_list(StrList* lst) {
-    destroy_base_list(lst);
+    destroy_list(lst);
 }
 
 static inline void add_str_list(StrList* lst, Str* str) {
     Str* ptr = copy_string(str);
-    if(!(LIST_OK == add_base_list(lst, &ptr))) {
+    if(!(LIST_OK == add_list(lst, &ptr))) {
         fprintf(stderr, "Fatal Error: Cannot add a string to the string list.\n");
         exit(1);
     }
 }
 
 static inline StrListIter* init_str_list_iter(StrList* lst) {
-    return init_base_list_iter(lst);
+    return init_list_iter(lst);
 }
 
 static inline Str* iterate_str_list(StrListIter* ptr) {
     void* val;
-    if(LIST_OK == iter_base_list(ptr, &val))
+    if(LIST_OK == iter_list(ptr, &val))
         return val;
     else
         return NULL;
 }
 
 static inline void push_str_list(StrList* lst, Str* str) {
-    push_base_list(lst, &str);
+    push_list(lst, &str);
 }
 
 static inline Str* peek_str_list(StrList* lst) {
     void* val;
-    if(LIST_OK == peek_base_list(lst, &val))
+    if(LIST_OK == peek_list(lst, &val))
         return val;
     else
         return NULL;
@@ -213,7 +213,7 @@ static inline Str* peek_str_list(StrList* lst) {
 
 static inline Str* pop_str_list(StrList* lst) {
     void* val;
-    if(LIST_OK == pop_base_list(lst, &val))
+    if(LIST_OK == pop_list(lst, &val))
         return val;
     else
         return NULL;

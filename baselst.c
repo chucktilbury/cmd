@@ -1,7 +1,7 @@
 
 #include "util.h"
 
-static inline void expand_buffer(BaseList* lst) {
+static inline void expand_buffer(List* lst) {
 
     if(lst->len+lst->size > lst->cap) {
         while(lst->len+lst->size > lst->cap)
@@ -11,9 +11,9 @@ static inline void expand_buffer(BaseList* lst) {
 }
 
 
-BaseList* create_base_list(int size) {
+List* create_list(int size) {
 
-    BaseList* ptr = _ALLOC_T(BaseList);
+    List* ptr = _ALLOC_T(List);
 
     ptr->cap = 1 << 3;
     ptr->len = 0;
@@ -24,7 +24,7 @@ BaseList* create_base_list(int size) {
     return ptr;
 }
 
-void destroy_base_list(BaseList* lst) {
+void destroy_list(List* lst) {
 
     if(lst != NULL) {
         _FREE(lst->buffer);
@@ -33,7 +33,7 @@ void destroy_base_list(BaseList* lst) {
 }
 
 // append a datum to the list
-BaseListResult add_base_list(BaseList* lst, void* data) {
+ListResult add_list(List* lst, void* data) {
 
     expand_buffer(lst);
 
@@ -44,7 +44,7 @@ BaseListResult add_base_list(BaseList* lst, void* data) {
     return LIST_OK;
 }
 
-BaseListResult get_base_list(BaseList* lst, int index, void* data) {
+ListResult get_list(List* lst, int index, void* data) {
 
     if((lst->size * index) < lst->len) {
         memcpy(data, &lst->buffer[lst->size*index], lst->size);
@@ -54,7 +54,7 @@ BaseListResult get_base_list(BaseList* lst, int index, void* data) {
         return LIST_ERROR;
 }
 
-BaseListResult ins_base_list(BaseList* lst, int index, void* data) {
+ListResult ins_list(List* lst, int index, void* data) {
 
     // aid in debugging
     int start, end, size;
@@ -79,7 +79,7 @@ BaseListResult ins_base_list(BaseList* lst, int index, void* data) {
         return LIST_ERROR;
 }
 
-BaseListResult del_base_list(BaseList* lst, int index) {
+ListResult del_list(List* lst, int index) {
 
     // aid in debugging
     int start, end, size;
@@ -98,12 +98,12 @@ BaseListResult del_base_list(BaseList* lst, int index) {
     }
 }
 
-BaseListResult push_base_list(BaseList* lst, void* data) {
+ListResult push_list(List* lst, void* data) {
 
-    return add_base_list(lst, data);
+    return add_list(lst, data);
 }
 
-BaseListResult peek_base_list(BaseList* lst, void* data) {
+ListResult peek_list(List* lst, void* data) {
 
     if(lst->len >= lst->size) {
         memcpy(data, &lst->buffer[lst->len-lst->size], lst->size);
@@ -114,18 +114,18 @@ BaseListResult peek_base_list(BaseList* lst, void* data) {
 }
 
 // places the NEW top of stack into the var.
-BaseListResult pop_base_list(BaseList* lst, void* data) {
+ListResult pop_list(List* lst, void* data) {
 
     if(lst->len > 0)
         lst->len -= lst->size;
 
     if(data != NULL)
-        return peek_base_list(lst, data);
+        return peek_list(lst, data);
     else
         return LIST_OK;
 }
 
-BaseListResult clr_base_list(BaseList* lst) {
+ListResult clr_list(List* lst) {
 
     lst->len = 0;
     lst->changed = true;
@@ -134,20 +134,20 @@ BaseListResult clr_base_list(BaseList* lst) {
 }
 
 // Return the number of items in the list
-int len_base_list(BaseList* lst) {
+int len_list(List* lst) {
 
     return lst->len / lst->size;
 }
 
 // Get the raw list
-void *raw_base_list(BaseList* lst) {
+void *raw_list(List* lst) {
 
     return (void*)lst->buffer;
 }
 
-BaseListIter* init_base_list_iter(BaseList* lst) {
+ListIter* init_list_iter(List* lst) {
 
-    BaseListIter* iter = _ALLOC_T(BaseListIter);
+    ListIter* iter = _ALLOC_T(ListIter);
     iter->index = 0;
     iter->list = lst;
     lst->changed = false;
@@ -156,11 +156,11 @@ BaseListIter* init_base_list_iter(BaseList* lst) {
 }
 
 // If the list changes during iterations, then return an error.
-BaseListResult iter_base_list(BaseListIter* iter, void* data) {
+ListResult iter_list(ListIter* iter, void* data) {
 
     if(!iter->list->changed) {
         if((iter->list->size * iter->index) < iter->list->len)
-            return get_base_list(iter->list, iter->index++, data);
+            return get_list(iter->list, iter->index++, data);
         else
             return LIST_END;
     }
@@ -168,9 +168,9 @@ BaseListResult iter_base_list(BaseListIter* iter, void* data) {
         return LIST_CHANGED;
 }
 
-BaseListIter* init_base_list_riter(BaseList* lst) {
+ListIter* init_list_riter(List* lst) {
 
-    BaseListIter* iter = _ALLOC_T(BaseListIter);
+    ListIter* iter = _ALLOC_T(ListIter);
     iter->index = (lst->len / lst->size) - 1;
     iter->list = lst;
     lst->changed = false;
@@ -179,11 +179,11 @@ BaseListIter* init_base_list_riter(BaseList* lst) {
 }
 
 // If the list changes during iterations, then return an error.
-BaseListResult riter_base_list(BaseListIter* iter, void* data) {
+ListResult riter_list(ListIter* iter, void* data) {
 
     if(!iter->list->changed) {
         if(iter->index >= 0)
-            return get_base_list(iter->list, iter->index--, data);
+            return get_list(iter->list, iter->index--, data);
         else
             return LIST_END;
     }
