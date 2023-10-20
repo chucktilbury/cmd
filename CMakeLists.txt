@@ -9,7 +9,7 @@ add_library(${PROJECT_NAME} STATIC
     str.c
     mem.c
     cmd.c
-    ptrlst.c
+    #ptrlst.c
     except.c
     baselst.c
 )
@@ -54,7 +54,12 @@ add_custom_target(hash_test
     COMMAND gcc -Wall -Wextra -Wpedantic -g -DUSE_GC -I.. -L. -o hash_test ../hash_test.c -lutil -lgc
 )
 
+add_custom_target(str_test
+    COMMENT "Test the string functionality"
+    COMMAND gcc -Wall -Wextra -Wpedantic -g -DUSE_GC -I.. -L. -o str_test ../str_test.c -lutil -lgc
+)
+
 add_custom_target(all_tests
     COMMENT "Build all tests"
-    COMMAND make base_test && make cmd_test && make except_test && make hash_test
+    COMMAND make base_test && make cmd_test && make except_test && make hash_test && make str_test
 )

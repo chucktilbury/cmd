@@ -32,7 +32,13 @@ void test_ints() {
     count = 0;
     printf("using the iterator\n");
     BaseListIter* iter = init_base_list_iter(lst);
-    while(iter_base_list(iter, &value) == BASE_LST_OK)
+    while(iter_base_list(iter, &value) == LIST_OK)
+        printf("%d. value: %d\n", count++, value);
+
+    count = 0;
+    printf("using reverse the iterator\n");
+    iter = init_base_list_riter(lst);
+    while(riter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
 
     printf("remove item at index 5, 0, 0, 9\n");
@@ -49,7 +55,7 @@ void test_ints() {
     printf("del: len: %d cap: %d size: %d\n", lst->len, lst->cap, lst->size);
     count = 0;
     iter = init_base_list_iter(lst);
-    while(iter_base_list(iter, &value) == BASE_LST_OK)
+    while(iter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
 
     printf("insert 8080 at 2\n");
@@ -74,7 +80,7 @@ void test_ints() {
 
     iter = init_base_list_iter(lst);
     count = 0;
-    while(iter_base_list(iter, &value) == BASE_LST_OK)
+    while(iter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
 
     printf("insert 2222 at 9\n");
@@ -89,7 +95,7 @@ void test_ints() {
 
     iter = init_base_list_iter(lst);
     count = 0;
-    while(iter_base_list(iter, &value) == BASE_LST_OK)
+    while(iter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
 
     printf("pop value\n");
@@ -109,7 +115,7 @@ void test_ints() {
 
     iter = init_base_list_iter(lst);
     count = 0;
-    while(iter_base_list(iter, &value) == BASE_LST_OK)
+    while(iter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
 
 }

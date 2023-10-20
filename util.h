@@ -52,9 +52,10 @@ typedef struct {
 } BaseListIter;
 
 typedef enum {
-    BASE_LST_OK,
-    BASE_LST_ERROR,
-    BASE_LST_END,
+    LIST_OK,
+    LIST_ERROR,
+    LIST_END,
+    LIST_CHANGED,
 } BaseListResult;
 
 BaseList* create_base_list(int size);
@@ -66,9 +67,12 @@ BaseListResult del_base_list(BaseList* lst, int index);
 BaseListResult push_base_list(BaseList* lst, void* data);
 BaseListResult peek_base_list(BaseList* lst, void* data);
 BaseListResult pop_base_list(BaseList* lst, void* data);
+BaseListResult clr_base_list(BaseList* lst);
 // iterator
 BaseListIter* init_base_list_iter(BaseList* lst);
 BaseListResult iter_base_list(BaseListIter* iter, void* data);
+BaseListIter* init_base_list_riter(BaseList* lst);
+BaseListResult riter_base_list(BaseListIter* iter, void* data);
 // info about the list
 void* raw_base_list(BaseList* lst);
 int len_base_list(BaseList* lst);
@@ -77,71 +81,143 @@ int len_base_list(BaseList* lst);
 // ptrlst.c
 //------------------------------------------------------
 // generic pointer list.
-typedef struct {
-    void** list;
-    int cap;
-    int len;
-} PtrList;
+typedef BaseList PtrList;
+typedef BaseListIter PtrListIter;
 
-typedef struct {
-    PtrList* list;
-    int idx;
-} PtrListIter;
+static inline PtrList* create_ptr_list() {
+    return create_base_list(sizeof(void*));
+}
 
-PtrList* create_ptr_list();
-void destroy_ptr_list(PtrList* h);
-void add_ptr_list(PtrList* h, void* ptr);
-PtrListIter* init_ptr_list_iter(PtrList* h);
-void* iterate_ptr_list(PtrListIter *ptr, PtrList* h);
+static inline void destroy_ptr_list(PtrList* h) {
+    destroy_base_list(h);
+}
 
-void push_ptr_list(PtrList* h, void* ptr);
-void* peek_ptr_list(PtrList* h);
-void* pop_ptr_list(PtrList* h);
+static inline void add_ptr_list(PtrList* h, void* ptr) {
+    if(!(LIST_OK == add_base_list(h, &ptr))) {
+        fprintf(stderr, "Fatal Error: Cannot add a pointer to the pointer list.\n");
+        exit(1);
+    }
+}
+
+static inline PtrListIter* init_ptr_list_iter(PtrList* h) {
+    return init_base_list_iter(h);
+}
+
+static inline void* iterate_ptr_list(PtrListIter *ptr) {
+    void* val;
+    if(LIST_OK == iter_base_list(ptr, &val))
+        return val;
+    else
+        return NULL;
+}
+
+static inline void push_ptr_list(PtrList* h, void* ptr) {
+    push_base_list(h, &ptr);
+}
+
+static inline void* peek_ptr_list(PtrList* h) {
+    void* val;
+    if(LIST_OK == peek_base_list(h, &val))
+        return val;
+    else
+        return NULL;
+}
+
+static inline void* pop_ptr_list(PtrList* h) {
+    void* val;
+    if(LIST_OK == pop_base_list(h, &val))
+        return val;
+    else
+        return NULL;
+}
 
 //--------------------------------------------------------
 // str.c
 //--------------------------------------------------------
 // Specialize the ptr list to be a str list.
-typedef PtrList StrList;
-typedef PtrListIter StrListIter;
+typedef BaseList StrList;
+typedef BaseListIter StrListIter;
+typedef BaseList Str;
 
+/*
 typedef struct {
     char* buf;
     int cap;
     int len;
     int idx;
 } Str;
+*/
 
-StrList* create_str_list();
-void destroy_str_list(StrList* lst);
-void add_str_list(StrList* lst, Str* str);
-StrListIter* init_str_list_iter(StrList* lst);
-Str* iterate_str_list(StrListIter* ptr, StrList* lst);
-
-void push_str_list(StrList* lst, Str* str);
-Str* peek_str_list(StrList* lst);
-Str* pop_str_list(StrList* lst);
 Str* join_str_list(StrList* lst, const char* str);
-
+Str* copy_string(Str* str);
 Str* create_string(const char* str);
 Str* create_string_fmt(const char* str, ...);
 void destroy_string(Str* ptr);
 void add_string_char(Str* ptr, int ch);
 void add_string_str(Str* ptr, const char* str);
 void add_string_fmt(Str* ptr, const char* str, ...);
-void reset_string(Str* ptr);
-int iterate_string(Str* ptr);
+//void reset_string(Str* ptr);
+//int iterate_string(Str* ptr);
 
 const char* raw_string(Str* ptr);
 int comp_string(Str* s1, Str* s2);
 int comp_string_const(Str* s1, const char* s2);
 
-Str* copy_string(Str* str);
+
 void truncate_string(Str* str, int index);
+void clear_string(Str* str);
 int len_string(Str* str);
 void add_string_Str(Str* ptr, Str* str);
 void print_string(FILE* fp, Str* str);
 void printf_string(FILE* fp, Str* str, ...);
+
+static inline StrList* create_str_list() {
+    return create_base_list(sizeof(void*));
+}
+
+static inline void destroy_str_list(StrList* lst) {
+    destroy_base_list(lst);
+}
+
+static inline void add_str_list(StrList* lst, Str* str) {
+    Str* ptr = copy_string(str);
+    if(!(LIST_OK == add_base_list(lst, &ptr))) {
+        fprintf(stderr, "Fatal Error: Cannot add a string to the string list.\n");
+        exit(1);
+    }
+}
+
+static inline StrListIter* init_str_list_iter(StrList* lst) {
+    return init_base_list_iter(lst);
+}
+
+static inline Str* iterate_str_list(StrListIter* ptr) {
+    void* val;
+    if(LIST_OK == iter_base_list(ptr, &val))
+        return val;
+    else
+        return NULL;
+}
+
+static inline void push_str_list(StrList* lst, Str* str) {
+    push_base_list(lst, &str);
+}
+
+static inline Str* peek_str_list(StrList* lst) {
+    void* val;
+    if(LIST_OK == peek_base_list(lst, &val))
+        return val;
+    else
+        return NULL;
+}
+
+static inline Str* pop_str_list(StrList* lst) {
+    void* val;
+    if(LIST_OK == pop_base_list(lst, &val))
+        return val;
+    else
+        return NULL;
+}
 
 //-----------------------------------------------------------------
 // hash.c
