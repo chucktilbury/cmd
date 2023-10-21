@@ -23,11 +23,6 @@ Str* join_str_list(StrList* lst, const char* str) {
 
 Str* create_string(const char* str) {
 
-    // Str* ptr = _ALLOC_T(Str);
-    // ptr->cap = 1 << 3;
-    // ptr->len = 0;
-    // ptr->idx = 0;
-    // ptr->buf = _ALLOC_ARRAY(char, ptr->cap);
     Str* ptr = create_list(sizeof(char));
 
     if(str != NULL)
@@ -60,7 +55,6 @@ Str* create_string_fmt(const char* str, ...) {
 void destroy_string(Str* ptr) {
 
     if(ptr != NULL) {
-        //_FREE(ptr->buf);
         destroy_list(ptr);
         _FREE(ptr);
     }
@@ -68,33 +62,11 @@ void destroy_string(Str* ptr) {
 
 void add_string_char(Str* ptr, int ch) {
 
-    // assert(ptr != NULL);
-
-    // if(ptr->len + 1 > ptr->cap) {
-    //     ptr->cap <<= 1;
-    //     ptr->buf = _REALLOC_ARRAY(ptr->buf, char, ptr->cap);
-    // }
-
-    // ptr->buf[ptr->len] = ch;
-    // ptr->len++;
-    // ptr->buf[ptr->len] = 0;
-    add_list(ptr, &ch);
+    append_list(ptr, &ch);
 }
 
 void add_string_str(Str* ptr, const char* str) {
 
-    // assert(ptr != NULL);
-    // assert(str != NULL);
-
-    // int len = strlen(str);
-    // if(ptr->len + len + 1 > ptr->cap) {
-    //     while(ptr->len + len + 1 > ptr->cap)
-    //         ptr->cap <<= 1;
-    //     ptr->buf = _REALLOC_ARRAY(ptr->buf, char, ptr->cap);
-    // }
-
-    // strcat(ptr->buf, str);
-    // ptr->len += len;
     for(const char* ch = str; *ch != '\0'; ch++)
         add_string_char(ptr, *ch);
 }
@@ -141,10 +113,6 @@ void add_string_fmt(Str* ptr, const char* str, ...) {
 
 const char* raw_string(Str* ptr) {
 
-    // assert(ptr != NULL);
-    // return ptr->buf;
-
-    // terminate the string
     int ch = 0;
     push_list(ptr, &ch);
     pop_list(ptr, NULL);
@@ -164,22 +132,10 @@ Str* copy_string(Str* str) {
     return create_string(raw_string(str));
 }
 
-// if the index is <0 then count from the end.
 void truncate_string(Str* str, int index) {
 
-    // assert(str != NULL);
-    // if(index > 0 && index <= str->len)
-    //     str->buf[index] = 0;
-    // else if(index < 0 && ((str->len + index) > 0))
-    //     str->buf[str->len + index] = 0;
-    // else
-    //     str->buf[0] = 0;
-
-    // str->len = strlen(str->buf);
-    // str->idx = 0; // reset the index
-
     int val = 0;
-    ins_list(str, index, &val);
+    write_list(str, index, &val);
 }
 
 void clear_string(Str* str) {
@@ -190,14 +146,10 @@ void clear_string(Str* str) {
 
 int len_string(Str* str) {
 
-    //assert(str != NULL);
     return len_list(str);
 }
 
 void add_string_Str(Str* ptr, Str* str) {
-
-    // assert(ptr != NULL);
-    // assert(str != NULL);
 
     add_string_str(ptr, raw_string(str));
 }

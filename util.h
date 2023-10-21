@@ -40,15 +40,15 @@ void mem_free(void* ptr);
 // the list.
 typedef struct {
     unsigned char* buffer; // buffer that holds the raw bytes.
-    int cap;    // number of bytes there is room for
-    int len;    // number of bytes in the list.
-    int size;   // number of bytes that each item uses.
-    bool changed; // used when iterating data
+    int cap;               // number of bytes there is room for
+    int len;               // number of bytes in the list.
+    int size;              // number of bytes that each item uses.
+    bool changed;          // used when iterating data
 } List;
 
 typedef struct {
     List* list; // list to iterate
-    int index;      // current index of the data in the list
+    int index;  // current index of the data in the list
 } ListIter;
 
 typedef enum {
@@ -60,10 +60,11 @@ typedef enum {
 
 List* create_list(int size);
 void destroy_list(List* lst);
-ListResult add_list(List* lst, void* data);
-ListResult get_list(List* lst, int index, void* data);
-ListResult ins_list(List* lst, int index, void* data);
-ListResult del_list(List* lst, int index);
+ListResult append_list(List* lst, void* data);
+ListResult read_list(List* lst, int index, void* data);
+ListResult write_list(List* lst, int index, void* data);
+ListResult insert_list(List* lst, int index, void* data);
+ListResult delete_list(List* lst, int index);
 ListResult push_list(List* lst, void* data);
 ListResult peek_list(List* lst, void* data);
 ListResult pop_list(List* lst, void* data);
@@ -93,7 +94,7 @@ static inline void destroy_ptr_list(PtrList* h) {
 }
 
 static inline void add_ptr_list(PtrList* h, void* ptr) {
-    if(!(LIST_OK == add_list(h, &ptr))) {
+    if(!(LIST_OK == append_list(h, &ptr))) {
         fprintf(stderr, "Fatal Error: Cannot add a pointer to the pointer list.\n");
         exit(1);
     }
@@ -103,7 +104,7 @@ static inline PtrListIter* init_ptr_list_iter(PtrList* h) {
     return init_list_iter(h);
 }
 
-static inline void* iterate_ptr_list(PtrListIter *ptr) {
+static inline void* iterate_ptr_list(PtrListIter* ptr) {
     void* val;
     if(LIST_OK == iter_list(ptr, &val))
         return val;
@@ -139,15 +140,6 @@ typedef List StrList;
 typedef ListIter StrListIter;
 typedef List Str;
 
-/*
-typedef struct {
-    char* buf;
-    int cap;
-    int len;
-    int idx;
-} Str;
-*/
-
 Str* join_str_list(StrList* lst, const char* str);
 Str* copy_string(Str* str);
 Str* create_string(const char* str);
@@ -156,8 +148,8 @@ void destroy_string(Str* ptr);
 void add_string_char(Str* ptr, int ch);
 void add_string_str(Str* ptr, const char* str);
 void add_string_fmt(Str* ptr, const char* str, ...);
-//void reset_string(Str* ptr);
-//int iterate_string(Str* ptr);
+// void reset_string(Str* ptr);
+// int iterate_string(Str* ptr);
 
 const char* raw_string(Str* ptr);
 int comp_string(Str* s1, Str* s2);
@@ -181,7 +173,7 @@ static inline void destroy_str_list(StrList* lst) {
 
 static inline void add_str_list(StrList* lst, Str* str) {
     Str* ptr = copy_string(str);
-    if(!(LIST_OK == add_list(lst, &ptr))) {
+    if(!(LIST_OK == append_list(lst, &ptr))) {
         fprintf(stderr, "Fatal Error: Cannot add a string to the string list.\n");
         exit(1);
     }

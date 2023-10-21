@@ -117,7 +117,6 @@ void test_ints() {
     count = 0;
     while(iter_base_list(iter, &value) == LIST_OK)
         printf("%d. value: %d\n", count++, value);
-
 }
 
 int main() {

@@ -1,5 +1,10 @@
 # UTIL
 
+* TODO:
+* Integrate the exceptions into the library.
+* Implement sorting and searching for lists.
+* Implement using a negative index addresses the end of the list
+
 This is a library of routines that I find myself using over and over. So, instead of copying them to a new project, I will use this library to capture updates and changes. There is no guarantee that this will remain the same going forward. All of the things in this library are very simple and subject to change.
 
 Likely changes that will happen in the future are
