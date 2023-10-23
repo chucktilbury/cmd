@@ -1,6 +1,9 @@
 
 #include "util.h"
 
+// This enum would normally exist in the application. The first value does
+// not really matter, but it has to be higher than the highest one that is
+// used in the library.
 typedef enum {
     // exception number zero is invalid
     EXCEPT_ONE = 100,
@@ -11,9 +14,9 @@ typedef enum {
 
 void func4() {
 
-    printf("before raising 2\n");
-    RAISE(0x8080, "this is exception two");
-    printf("after raising 2\n");
+    printf("before raising 0x8080\n");
+    RAISE(0x8080, "this is exception 8080");
+    printf("after raising 0x8080\n");
 }
 
 void func3() {
@@ -25,9 +28,16 @@ void func3() {
 
 void func2() {
 
-    printf("before calling 3\n");
-    func3();
-    printf("after calling 3\n");
+    TRY {
+        printf("before calling 3\n");
+        func3();
+        printf("after calling 3\n");
+    }
+    EXCEPT(EXCEPT_THREE) {
+        printf("exception number %d is not expected\n", EXCEPTION_NUM);
+        exit(1);
+    }
+    FINAL
 }
 
 void func1() {

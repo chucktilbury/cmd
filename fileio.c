@@ -27,11 +27,9 @@ void open_input_file(const char* fname) {
 
     struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
     ptr->fp = fopen(fname, "r");
-    if(ptr->fp == NULL) {
-        fprintf(stderr, "File Error: cannot open input file: %s: %s\n", fname,
-                strerror(errno));
-        exit(1);
-    }
+    if(ptr->fp == NULL)
+        RAISE(FILE_ERROR, "File Error: cannot open input file: %s: %s\n", fname,
+              strerror(errno));
 
     ptr->fname = create_string(fname);
     ptr->line_no = 1;
@@ -147,8 +145,8 @@ FPTR open_output_file(const char* fname) {
     struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
     ptr->fp = fopen(fname, "w");
     if(ptr->fp == NULL)
-        fprintf(stderr, "File Error: cannot open output file: %s: %s\n", fname,
-                strerror(errno));
+        RAISE(FILE_ERROR, "File Error: cannot open output file: %s: %s\n",
+              fname, strerror(errno));
 
     ptr->fname = create_string(fname);
     ptr->line_no = 1;
@@ -169,10 +167,7 @@ void close_output_file(FPTR fp) {
 
 void emit_buf(FPTR h, void* buf, unsigned int size) {
 
-    struct _file_ptr_* ptr = (struct _file_ptr_*)h;
-    const unsigned char* buffer = buf;
-    for(unsigned int idx = 0; idx < size; idx++)
-        fputc(buffer[idx], ptr->fp);
+    fwrite(buf, 1, size, ((struct _file_ptr_*)h)->fp);
 }
 
 void emit_fmt(FPTR h, const char* fmt, ...) {

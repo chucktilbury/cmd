@@ -11,9 +11,9 @@ Str* join_str_list(StrList* lst, const char* str) {
     Str* s = create_string(NULL);
     Str* tmp;
 
-    StrListIter* sli = init_str_list_iter(lst);
-    add_string_Str(s, iterate_str_list(sli));
-    while(NULL != (tmp = iterate_str_list(sli))) {
+    StrListIter* sli = init_string_list_iterator(lst);
+    add_string_Str(s, iterate_string_list(sli));
+    while(NULL != (tmp = iterate_string_list(sli))) {
         add_string_str(s, str);
         add_string_Str(s, tmp);
     }
@@ -92,24 +92,17 @@ void add_string_fmt(Str* ptr, const char* str, ...) {
     _FREE(spt);
 }
 
-// void reset_string(Str* ptr) {
+StrIter* init_string_iter(Str* ptr) {
+    return init_list_iterator(ptr);
+}
 
-//     assert(ptr != NULL);
-//     ptr->idx = 0;
-// }
-
-// int iterate_string(Str* ptr) {
-
-//     assert(ptr != NULL);
-//     int ch = 0;
-
-//     if(ptr->idx < ptr->len) {
-//         ch = ptr->buf[ptr->idx];
-//         ptr->idx++;
-//     }
-
-//     return ch;
-// }
+int iterate_string(StrIter* ptr) {
+    int ch;
+    if(iterate_list(ptr, &ch))
+        return ch;
+    else
+        return 0;
+}
 
 const char* raw_string(Str* ptr) {
 
@@ -141,12 +134,12 @@ void truncate_string(Str* str, int index) {
 void clear_string(Str* str) {
 
     truncate_string(str, 0);
-    clr_list(str);
+    clear_list(str);
 }
 
-int len_string(Str* str) {
+int length_string(Str* str) {
 
-    return len_list(str);
+    return length_list(str);
 }
 
 void add_string_Str(Str* ptr, Str* str) {

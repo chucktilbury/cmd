@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <string.h>
 #include <setjmp.h>
 #include <ctype.h>
@@ -24,12 +25,14 @@
 #define _DUP_MEM(p, s) mem_dup((p), (s))
 #define _DUP_MEM_T(p, t) (t*)mem_dup((p), sizeof(t))
 #define _DUP_STR(p) mem_dup_str(p)
+#define _FDUP_STR(p, ...) mem_fdup_str(p, ##__VA_ARGS__)
 #define _FREE(p) mem_free(((void*)p))
 
 void* mem_alloc(size_t size);
 void* mem_realloc(void* ptr, size_t size);
 void* mem_dup(void* ptr, size_t size);
 char* mem_dup_str(const char* str);
+char* mem_fdup_str(const char* str, ...);
 void mem_free(void* ptr);
 
 //------------------------------------------------------
@@ -51,32 +54,29 @@ typedef struct {
     int index;  // current index of the data in the list
 } ListIter;
 
-typedef enum {
-    LIST_OK,
-    LIST_ERROR,
-    LIST_END,
-    LIST_CHANGED,
-} ListResult;
-
 List* create_list(int size);
 void destroy_list(List* lst);
-ListResult append_list(List* lst, void* data);
-ListResult read_list(List* lst, int index, void* data);
-ListResult write_list(List* lst, int index, void* data);
-ListResult insert_list(List* lst, int index, void* data);
-ListResult delete_list(List* lst, int index);
-ListResult push_list(List* lst, void* data);
-ListResult peek_list(List* lst, void* data);
-ListResult pop_list(List* lst, void* data);
-ListResult clr_list(List* lst);
+void append_list(List* lst, void* data);
+void read_list(List* lst, int index, void* data);
+void write_list(List* lst, int index, void* data);
+void insert_list(List* lst, int index, void* data);
+void delete_list(List* lst, int index);
+void push_list(List* lst, void* data);
+void peek_list(List* lst, void* data);
+void pop_list(List* lst, void* data);
+void clear_list(List* lst);
+// TODO: compare, swap, bubble sort, and binary search. This will
+// require that a user-defined compare function be stored in the
+// data structure.
+
 // iterator
-ListIter* init_list_iter(List* lst);
-ListResult iter_list(ListIter* iter, void* data);
-ListIter* init_list_riter(List* lst);
-ListResult riter_list(ListIter* iter, void* data);
+ListIter* init_list_iterator(List* lst);
+int iterate_list(ListIter* iter, void* data);
+ListIter* init_list_riterator(List* lst);
+int riterate_list(ListIter* iter, void* data);
 // info about the list
 void* raw_list(List* lst);
-int len_list(List* lst);
+int length_list(List* lst);
 
 //------------------------------------------------------
 // ptrlst.c
@@ -94,19 +94,16 @@ static inline void destroy_ptr_list(PtrList* h) {
 }
 
 static inline void add_ptr_list(PtrList* h, void* ptr) {
-    if(!(LIST_OK == append_list(h, &ptr))) {
-        fprintf(stderr, "Fatal Error: Cannot add a pointer to the pointer list.\n");
-        exit(1);
-    }
+    append_list(h, &ptr);
 }
 
-static inline PtrListIter* init_ptr_list_iter(PtrList* h) {
-    return init_list_iter(h);
+static inline PtrListIter* init_ptr_list_iterator(PtrList* h) {
+    return init_list_iterator(h);
 }
 
 static inline void* iterate_ptr_list(PtrListIter* ptr) {
     void* val;
-    if(LIST_OK == iter_list(ptr, &val))
+    if(iterate_list(ptr, &val))
         return val;
     else
         return NULL;
@@ -117,19 +114,15 @@ static inline void push_ptr_list(PtrList* h, void* ptr) {
 }
 
 static inline void* peek_ptr_list(PtrList* h) {
-    void* val;
-    if(LIST_OK == peek_list(h, &val))
-        return val;
-    else
-        return NULL;
+    void* val = NULL;
+    peek_list(h, &val);
+    return val; // note that this is not a local pointer value.
 }
 
 static inline void* pop_ptr_list(PtrList* h) {
-    void* val;
-    if(LIST_OK == pop_list(h, &val))
-        return val;
-    else
-        return NULL;
+    void* val = NULL;
+    pop_list(h, &val);
+    return val; // note that this is not a local pointer value.
 }
 
 //--------------------------------------------------------
@@ -139,8 +132,9 @@ static inline void* pop_ptr_list(PtrList* h) {
 typedef List StrList;
 typedef ListIter StrListIter;
 typedef List Str;
+typedef ListIter StrIter;
 
-Str* join_str_list(StrList* lst, const char* str);
+Str* join_string_list(StrList* lst, const char* str);
 Str* copy_string(Str* str);
 Str* create_string(const char* str);
 Str* create_string_fmt(const char* str, ...);
@@ -148,67 +142,65 @@ void destroy_string(Str* ptr);
 void add_string_char(Str* ptr, int ch);
 void add_string_str(Str* ptr, const char* str);
 void add_string_fmt(Str* ptr, const char* str, ...);
-// void reset_string(Str* ptr);
-// int iterate_string(Str* ptr);
+
+StrIter* init_string_iterator(Str* ptr);
+int iterate_string(StrIter* ptr);
 
 const char* raw_string(Str* ptr);
 int comp_string(Str* s1, Str* s2);
 int comp_string_const(Str* s1, const char* s2);
 
-
+// TODO: Insert sub-string and delete range. The list functionality will not
+// need to support this, so this library will need to manipulate the raw
+// buffer. It may be worth it to put a hook in the lists to swap or replace
+// the buffer.
 void truncate_string(Str* str, int index);
 void clear_string(Str* str);
-int len_string(Str* str);
+int length_string(Str* str);
 void add_string_Str(Str* ptr, Str* str);
 void print_string(FILE* fp, Str* str);
 void printf_string(FILE* fp, Str* str, ...);
 
-static inline StrList* create_str_list() {
+// TODO: Swap, sort, and find to be implemented mostly in the list functions
+// but the compare will have to be implemented in this part.
+static inline StrList* create_string_list() {
     return create_list(sizeof(void*));
 }
 
-static inline void destroy_str_list(StrList* lst) {
+static inline void destroy_string_list(StrList* lst) {
     destroy_list(lst);
 }
 
-static inline void add_str_list(StrList* lst, Str* str) {
-    Str* ptr = copy_string(str);
-    if(!(LIST_OK == append_list(lst, &ptr))) {
-        fprintf(stderr, "Fatal Error: Cannot add a string to the string list.\n");
-        exit(1);
-    }
+static inline void add_string_list(StrList* lst, Str* str) {
+    append_list(lst, &str);
 }
 
-static inline StrListIter* init_str_list_iter(StrList* lst) {
-    return init_list_iter(lst);
+static inline StrListIter* init_string_list_iterator(StrList* lst) {
+    return init_list_iterator(lst);
 }
 
-static inline Str* iterate_str_list(StrListIter* ptr) {
-    void* val;
-    if(LIST_OK == iter_list(ptr, &val))
+static inline Str* iterate_string_list(StrListIter* ptr) {
+    Str* val;
+    if(iterate_list(ptr, &val))
         return val;
     else
         return NULL;
 }
 
-static inline void push_str_list(StrList* lst, Str* str) {
+static inline void push_string_list(StrList* lst, Str* str) {
     push_list(lst, &str);
 }
 
-static inline Str* peek_str_list(StrList* lst) {
+static inline Str* peek_string_list(StrList* lst) {
     void* val;
-    if(LIST_OK == peek_list(lst, &val))
-        return val;
-    else
-        return NULL;
+    peek_list(lst, &val);
+    return val;
 }
 
-static inline Str* pop_str_list(StrList* lst) {
+static inline Str* pop_string_list(StrList* lst) {
     void* val;
-    if(LIST_OK == pop_list(lst, &val))
-        return val;
-    else
-        return NULL;
+    pop_list(lst, &val);
+    return val;
 }
 
 //-----------------------------------------------------------------
@@ -238,6 +230,8 @@ typedef enum {
     HASH_NF,
 } HashResult;
 
+// TODO: use the list functions for the table. That means that the list needs to
+// be able to handle NULL pointers.
 HashTable* create_hashtable();
 void destroy_hashtable(HashTable* table);
 HashResult insert_hashtable(HashTable* table, const char* key, void* data, size_t size);
@@ -331,8 +325,8 @@ void dump_cmd_line(CmdLine cl);
 // except.c
 //
 //------------------------------------------------------------------------------
-// This implementation of exceptions is used to handler errors. THere are no
-// classes in C. This uses an enum to register an exception handler by name.
+// This implementation of exceptions is used to handle errors. THere are no
+// classes in C. This uses a global enum to register an exception handler by name.
 // Using the non-local goto functionality and the preprocessor of C, a
 // reasonably easy to maintain exception capability can be achieved. This has to
 // use macros because the current context in the function that handles the
@@ -375,52 +369,52 @@ extern _ExceptionState _exception_state;
 
 // FINAL and/or ANY_EXCEPT clause is REQUIRED for the system to work, and it
 // MUST be the last clause in the construct.
-#define FINAL                                                                      \
-    else {                                                                         \
-        if(_exception_state.stack == NULL) {                                       \
-            fprintf(stderr, "ERROR: unhandled exception 0x%04X: %s: %s: %d: %s\n", \
-                    EXCEPTION_NUM, EXCEPTION_FILE, EXCEPTION_FUNC,                 \
-                    EXCEPTION_LINE, EXCEPTION_MSG);                                \
-            abort();                                                               \
-        }                                                                          \
-        else {                                                                     \
-            INTERNAL_RAISE(_exception_number);                                     \
-        }                                                                          \
-    }                                                                              \
-    }                                                                              \
-    while(0)                                                                       \
+#define FINAL                                                                               \
+    else {                                                                                  \
+        if(_exception_state.stack == NULL) {                                                \
+            fprintf(stderr, "Unhandled Exception: 0x%04X: %s: %s: %d: %s\n", EXCEPTION_NUM, \
+                    EXCEPTION_FILE, EXCEPTION_FUNC, EXCEPTION_LINE, EXCEPTION_MSG);         \
+            abort();                                                                        \
+        }                                                                                   \
+        else {                                                                              \
+            INTERNAL_RAISE(_exception_number);                                              \
+        }                                                                                   \
+    }                                                                                       \
+    }                                                                                       \
+    while(0)                                                                                \
         ;
 
 // use this to raise an exception
-#define RAISE(num, m)                               \
-    do {                                            \
-        _exception_state.line = __LINE__;           \
-        if(_exception_state.file != NULL)           \
-            _FREE(_exception_state.file);           \
-        _exception_state.file = _DUP_STR(__FILE__); \
-        if(_exception_state.func != NULL)           \
-            _FREE(_exception_state.func);           \
-        _exception_state.func = _DUP_STR(__func__); \
-        if(_exception_state.msg != NULL)            \
-            _FREE(_exception_state.msg);            \
-        _exception_state.msg = _DUP_STR(m);         \
-        INTERNAL_RAISE(num);                        \
+#define RAISE(num, m, ...)                                  \
+    do {                                                    \
+        _exception_state.line = __LINE__;                   \
+        if(_exception_state.file != NULL)                   \
+            _FREE(_exception_state.file);                   \
+        _exception_state.file = _DUP_STR(__FILE__);         \
+        if(_exception_state.func != NULL)                   \
+            _FREE(_exception_state.func);                   \
+        _exception_state.func = _DUP_STR(__func__);         \
+        if(_exception_state.msg != NULL)                    \
+            _FREE(_exception_state.msg);                    \
+        _exception_state.msg = _FDUP_STR(m, ##__VA_ARGS__); \
+        INTERNAL_RAISE(num);                                \
     } while(0)
 
 // internal use only
-#define INTERNAL_RAISE(num)                                 \
-    do {                                                    \
-        jmp_buf buf;                                        \
-        _ExceptionStack* ptr = _exception_state.stack;      \
-        if(ptr != NULL)                                     \
-            memcpy(buf, ptr->jmp, sizeof(jmp_buf));         \
-        else {                                              \
-            fprintf(stderr, "Exception internal error!\n"); \
-            abort();                                        \
-        }                                                   \
-        _exception_state.stack = ptr->next;                 \
-        _FREE(ptr);                                         \
-        longjmp(buf, (num));                                \
+#define INTERNAL_RAISE(num)                                                         \
+    do {                                                                            \
+        jmp_buf buf;                                                                \
+        _ExceptionStack* ptr = _exception_state.stack;                              \
+        if(ptr != NULL)                                                             \
+            memcpy(buf, ptr->jmp, sizeof(jmp_buf));                                 \
+        else {                                                                      \
+            fprintf(stderr, "Unhandled Exception: 0x%04X: %s: %s: %d: %s\n", num,   \
+                    EXCEPTION_FILE, EXCEPTION_FUNC, EXCEPTION_LINE, EXCEPTION_MSG); \
+            abort();                                                                \
+        }                                                                           \
+        _exception_state.stack = ptr->next;                                         \
+        _FREE(ptr);                                                                 \
+        longjmp(buf, (num));                                                        \
     } while(0)
 
 // use these macros in your exception handler
@@ -429,5 +423,11 @@ extern _ExceptionState _exception_state;
 #define EXCEPTION_LINE _exception_state.line
 #define EXCEPTION_FUNC _exception_state.func
 #define EXCEPTION_NUM _exception_number
+
+typedef enum {
+    MEMORY_ERROR,
+    FILE_ERROR,
+    LIST_ERROR,
+} UTIL_EXCEPTIONS;
 
 #endif /* _UTIL_H */

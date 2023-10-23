@@ -36,7 +36,7 @@ static CmdItem* create_item(const char* parm, const char* name, const char* help
 
     // don't allocate the list if it's a bool
     if(!(flag & CMD_BOOL))
-        ci->list = create_str_list();
+        ci->list = create_string_list();
 
     return ci;
 }
@@ -49,14 +49,14 @@ static void destroy_item(CmdItem* ptr) {
         _FREE(ptr->help);
 
         if(!(ptr->flag & CMD_BOOL))
-            destroy_str_list(ptr->list);
+            destroy_string_list(ptr->list);
 
         _FREE(ptr);
     }
 }
 
 static CmdItemListIter* init_ci_list_iter(CmdItemList* h) {
-    return init_ptr_list_iter(h);
+    return init_ptr_list_iterator(h);
 }
 
 static CmdItem* iterate_ci_list(CmdItemListIter* iter) {
@@ -237,7 +237,7 @@ static void save_cmd(Cmd* cmd, CmdItem* ci, const char* str) {
 // Future enhancement: Support commas to create a list in a single parameter.
 // for example: -x=123,abc,qwe,238 would be a list of 4 items connected to -x
 #endif
-        add_str_list(ci->list, create_string(str));
+        add_string_list(ci->list, create_string(str));
     }
     else
         show_error(cmd, "invalid flag value: 0x%02X", ci->flag);
@@ -299,7 +299,7 @@ static void get_cmd(Cmd* cmd) {
         // have a stand-alone string
         ci = find_by_parm(cmd, "");
         if(ci != NULL) {
-            add_str_list(ci->list, create_string(str));
+            add_string_list(ci->list, create_string(str));
             ci->flag |= CMD_SEEN;
         }
         else
@@ -371,7 +371,7 @@ void add_cmd(CmdLine cl,
 
     // set up the default value
     if((!(flags & CMD_BOOL)) && dvalue != NULL)
-        push_str_list(ci->list, create_string(dvalue));
+        push_string_list(ci->list, create_string(dvalue));
     else
         ci->bval = false;
 
@@ -385,7 +385,7 @@ Str* get_cmd_str(CmdLine cl, const char* name) {
     CmdItem* ci = find_by_name((Cmd*)cl, name);
     assert(ci != NULL);
 
-    return peek_str_list(ci->list);
+    return peek_string_list(ci->list);
 }
 
 long int get_cmd_int(CmdLine cl, const char* name) {
@@ -506,7 +506,7 @@ void dump_cmd_line(CmdLine cl) {
         else {
             Str* str;
             CmdItemListIter* cili = init_ci_list_iter(ci->list);
-            while(NULL != (str = iterate_str_list(cili)))
+            while(NULL != (str = iterate_string_list(cili)))
                 printf(" %s", raw_string(str));
         }
         printf("\n");

@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+
+#include "util.h"
 
 #ifdef USE_GC
 #include <gc.h>
@@ -17,10 +20,8 @@ void* mem_alloc(size_t size) {
 #else
     void* ptr = malloc(size);
 #endif
-    if(ptr == NULL) {
-        fprintf(stderr, "MEMORY: Cannot allocate %lu bytes\n", size);
-        exit(1);
-    }
+    if(ptr == NULL)
+        RAISE(MEMORY_ERROR, "MEMORY: Cannot allocate %lu bytes\n", size);
 
     memset(ptr, 0, size);
     return ptr;
@@ -33,10 +34,8 @@ void* mem_realloc(void* ptr, size_t size) {
 #else
     void* nptr = realloc(ptr, size);
 #endif
-    if(nptr == NULL) {
-        fprintf(stderr, "MEMORY: Cannot re-allocate %lu bytes\n", size);
-        exit(1);
-    }
+    if(nptr == NULL)
+        RAISE(MEMORY_ERROR, "MEMORY: Cannot re-allocate %lu bytes\n", size);
 
     return nptr;
 }
@@ -53,6 +52,24 @@ char* mem_dup_str(const char* str) {
 
     return (char*)mem_dup((void*)str, strlen(str) + 1);
 }
+
+char* mem_fdup_str(const char* str, ...) {
+
+    va_list args;
+
+    va_start(args, str);
+    size_t len = vsnprintf(NULL, 0, str, args);
+    va_end(args);
+
+    char* buffer = mem_alloc(len + 1);
+
+    va_start(args, str);
+    vsnprintf(buffer, len, str, args);
+    va_end(args);
+
+    return buffer;
+}
+
 
 void mem_free(void* ptr) {
 
