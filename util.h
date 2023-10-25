@@ -160,6 +160,9 @@ int length_string(Str* str);
 void add_string_Str(Str* ptr, Str* str);
 void print_string(FILE* fp, Str* str);
 void printf_string(FILE* fp, Str* str, ...);
+Str* upcase_string(Str* str);
+Str* downcase_string(Str* str);
+
 
 // TODO: Swap, sort, and find to be implemented mostly in the list functions
 // but the compare will have to be implemented in this part.

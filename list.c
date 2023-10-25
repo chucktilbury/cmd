@@ -120,7 +120,7 @@ void delete_list(List* lst, int index) {
 
 void push_list(List* lst, void* data) {
 
-//printf("push: %p: %d (%d)\n", lst, lst->len, lst->size);
+    // printf("push: %p: %d (%d)\n", lst, lst->len, lst->size);
     append_list(lst, data);
 }
 
@@ -134,7 +134,7 @@ void peek_list(List* lst, void* data) {
 
 // places the NEW top of stack into the var.
 void pop_list(List* lst, void* data) {
-//printf("pop: %p: %d (%d)\n", lst, lst->len, lst->size);
+    // printf("pop: %p: %d (%d)\n", lst, lst->len, lst->size);
     if((lst->len - lst->size) >= 0)
         lst->len -= lst->size;
     else

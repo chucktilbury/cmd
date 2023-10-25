@@ -160,3 +160,34 @@ void printf_string(FILE* fp, Str* str, ...) {
     vfprintf(fp, raw_string(str), args);
     va_end(args);
 }
+
+Str* upcase_string(Str* str) {
+
+    char* ptr = _DUP_STR(raw_string(str));
+
+    while(*ptr != '\0') {
+        *ptr = toupper(*ptr);
+        ptr++;
+    }
+
+    Str* s = create_string(ptr);
+    _FREE(ptr);
+
+    return s;
+}
+
+Str* downcase_string(Str* str) {
+
+    char* ptr = _DUP_STR(raw_string(str));
+
+    while(*ptr != '\0') {
+        *ptr = tolower(*ptr);
+        ptr++;
+    }
+
+    Str* s = create_string(ptr);
+    _FREE(ptr);
+
+    return s;
+}
+
