@@ -190,4 +190,3 @@ Str* downcase_string(Str* str) {
 
     return s;
 }
-
