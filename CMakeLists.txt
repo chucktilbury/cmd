@@ -19,6 +19,8 @@ target_compile_options(${PROJECT_NAME}
         -Wextra
         -Wpedantic
         -DUSE_GC
+        -I${PROJECT_SOURCE_DIR}/../util
+        -I${PROJECT_SOURCE_DIR}/../bdwgc/include
         $<$<CONFIG:DEBUG>:-g >
         $<$<CONFIG:DEBUG>:-DMEMORY_DEBUG >
         $<$<CONFIG:DEBUG>:-DENA_TRACE >
