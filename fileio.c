@@ -1,4 +1,19 @@
-
+/**
+ * @file fileio.c
+ *
+ * @brief Handle files for applications. This is optimized for compilers.
+ * Files are stored in a stack. When a file is opened, it is placed on the
+ * stack and input is drawn from it. When the end of the file is reached, then
+ * the file is closed and popped from the stack. Then if there is still a file
+ * on the stack, then the input resumes from where it left off. When the last
+ * file is popped, the input stream is closed, but the last item is not popped
+ * to allow for the get_line_no() calls to return the last line that was read.
+ *
+ * @author Charles Tilbury (chucktilbury@gmail.com)
+ * @version 0.0
+ * @date 01-12-2024
+ * @copyright Copyright (c) 2024
+ */
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -51,9 +66,15 @@ static void close_input_file() {
     if(file_stack != NULL) {
         fclose(file_stack->fp);
         struct _file_ptr_* tmp = file_stack;
-        file_stack = tmp->next;
-        destroy_string(tmp->fname);
-        _FREE(tmp);
+        if(tmp->next != NULL) {
+            file_stack = tmp->next;
+            destroy_string(tmp->fname);
+            _FREE(tmp);
+        }
+        else {
+            tmp->fp = NULL;
+            tmp->ch = EOF;
+        }
     }
 }
 
@@ -86,11 +107,13 @@ int consume_char() {
         else
             file_stack->col_no++;
 
-        file_stack->ch = fgetc(file_stack->fp);
-        if(file_stack->ch == EOF) {
-            close_input_file();
-            // return the current character from the previous file.
-            return get_char();
+        if(file_stack->fp != NULL) {
+            file_stack->ch = fgetc(file_stack->fp);
+            if(file_stack->ch == EOF) {
+                close_input_file();
+                // return the current character from the previous file.
+                return get_char();
+            }
         }
 
         return file_stack->ch;
