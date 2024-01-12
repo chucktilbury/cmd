@@ -32,6 +32,15 @@ struct _file_ptr_ {
 };
 
 static struct _file_ptr_* file_stack = NULL;
+static inline void init_file(struct _file_ptr_* ptr, FILE* fp, const char* fname) {
+
+    ptr->fp = fp;
+    ptr->fname = create_string(fname);
+    ptr->line_no = 1;
+    ptr->col_no = 1;
+    ptr->next = NULL;
+    ptr->ch = fgetc(ptr->fp);
+}
 
 /**
  * @brief Open an input file and push it on the stack.
@@ -40,41 +49,25 @@ static struct _file_ptr_* file_stack = NULL;
  */
 void open_input_file(const char* fname) {
 
-    struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
-    ptr->fp = fopen(fname, "r");
-    if(ptr->fp == NULL)
+    FILE* fp = fopen(fname, "r");
+    if(fp == NULL)
         RAISE(FILE_ERROR, "File Error: cannot open input file: %s: %s\n", fname,
               strerror(errno));
 
-    ptr->fname = create_string(fname);
-    ptr->line_no = 1;
-    ptr->col_no = 1;
-    ptr->next = NULL;
-    ptr->ch = fgetc(ptr->fp);
+    if(file_stack == NULL) {
+        file_stack = _ALLOC_T(struct _file_ptr_);
+        init_file(file_stack, fp, fname);
+    }
+    else if(file_stack->fp == NULL) {
+        init_file(file_stack, fp, fname);
+    }
+    else {
+        struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
+        init_file(ptr, fp, fname);
 
-    if(file_stack != NULL)
-        ptr->next = file_stack;
-    file_stack = ptr;
-}
-
-/**
- * @brief Close an input file and pop it off of the stack.
- *
- */
-static void close_input_file() {
-
-    if(file_stack != NULL) {
-        fclose(file_stack->fp);
-        struct _file_ptr_* tmp = file_stack;
-        if(tmp->next != NULL) {
-            file_stack = tmp->next;
-            destroy_string(tmp->fname);
-            _FREE(tmp);
-        }
-        else {
-            tmp->fp = NULL;
-            tmp->ch = EOF;
-        }
+        if(file_stack != NULL)
+            ptr->next = file_stack;
+        file_stack = ptr;
     }
 }
 
@@ -110,9 +103,15 @@ int consume_char() {
         if(file_stack->fp != NULL) {
             file_stack->ch = fgetc(file_stack->fp);
             if(file_stack->ch == EOF) {
-                close_input_file();
-                // return the current character from the previous file.
-                return get_char();
+                fclose(file_stack->fp);
+                if(file_stack->next == NULL)
+                    file_stack->fp = NULL;
+                else {
+                    struct _file_ptr_* tmp = file_stack;
+                    file_stack = tmp->next;
+                    destroy_string(tmp->fname);
+                    _FREE(tmp);
+                }
             }
         }
 
