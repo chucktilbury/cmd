@@ -50,7 +50,10 @@ void* mem_dup(void* ptr, size_t size) {
 
 char* mem_dup_str(const char* str) {
 
-    return (char*)mem_dup((void*)str, strlen(str) + 1);
+    if(str != NULL)
+        return (char*)mem_dup((void*)str, strlen(str) + 1);
+    else
+        return (char*)mem_alloc(1);
 }
 
 char* mem_fdup_str(const char* str, ...) {
