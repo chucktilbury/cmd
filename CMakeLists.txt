@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(util)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
-
+add_subdirectory(bdwgc)
 add_library(${PROJECT_NAME} STATIC
     fileio.c
     hash.c
@@ -19,8 +19,7 @@ target_compile_options(${PROJECT_NAME}
         -Wextra
         -Wpedantic
         -DUSE_GC
-        -I${PROJECT_SOURCE_DIR}/../util
-        -I${PROJECT_SOURCE_DIR}/../bdwgc/include
+        -I${PROJECT_SOURCE_DIR}/bdwgc/include
         $<$<CONFIG:DEBUG>:-g >
         $<$<CONFIG:DEBUG>:-DMEMORY_DEBUG >
         $<$<CONFIG:DEBUG>:-DENA_TRACE >
