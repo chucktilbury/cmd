@@ -1,7 +1,6 @@
 # UTIL
 
 * TODO:
-* Integrate the exceptions into the library.
 * Implement sorting and searching for lists.
 * Implement using a negative index addresses the end of the list
 
@@ -23,9 +22,6 @@ Likely changes that will happen in the future are
   * Better handling for boolean toggles
 * Enhancements to hash tables
   * Store void pointers instead of internal memory allocations.
-* Enhancements to memory functions
-  * Integrate the garbage collector into the tree using embedded GIT project.
-* Implement exceptions using setjmp standard library and use them in this library.
 
 ## MEM
 
