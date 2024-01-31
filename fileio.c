@@ -32,14 +32,21 @@ struct _file_ptr_ {
 };
 
 static struct _file_ptr_* file_stack = NULL;
-static inline void init_file(struct _file_ptr_* ptr, FILE* fp, const char* fname) {
 
-    ptr->fp = fp;
-    ptr->fname = create_string(fname);
-    ptr->line_no = 1;
-    ptr->col_no = 1;
-    ptr->next = NULL;
-    ptr->ch = fgetc(ptr->fp);
+/**
+ * @brief Close the file on the top of the stack and pop it off of the stack,
+ * makeing the previous file current.
+ *
+ */
+void pop_input_file() {
+
+    if(file_stack != NULL) {
+        fclose(file_stack->fp);
+        struct _file_ptr_* tmp = file_stack;
+        file_stack = tmp->next;
+        destroy_string(tmp->fname);
+        _FREE(tmp);
+    }
 }
 
 /**
@@ -47,28 +54,26 @@ static inline void init_file(struct _file_ptr_* ptr, FILE* fp, const char* fname
  *
  * @param fname
  */
-void open_input_file(const char* fname) {
+void push_input_file(const char* fname) {
 
     FILE* fp = fopen(fname, "r");
     if(fp == NULL)
         RAISE(FILE_ERROR, "File Error: cannot open input file: %s: %s\n", fname,
               strerror(errno));
 
-    if(file_stack == NULL) {
-        file_stack = _ALLOC_T(struct _file_ptr_);
-        init_file(file_stack, fp, fname);
-    }
-    else if(file_stack->fp == NULL) {
-        init_file(file_stack, fp, fname);
-    }
-    else {
-        struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
-        init_file(ptr, fp, fname);
+    struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
+    ptr->fp = fp;
+    ptr->fname = create_string(fname);
+    ptr->line_no = 1;
+    ptr->col_no = 1;
+    ptr->next = NULL;
+    // prime the pump
+    ptr->ch = fgetc(ptr->fp);
 
-        if(file_stack != NULL)
-            ptr->next = file_stack;
-        file_stack = ptr;
-    }
+    // push it on the stack
+    if(file_stack != NULL)
+        ptr->next = file_stack;
+    file_stack = ptr;
 }
 
 /**
@@ -81,7 +86,7 @@ int get_char() {
     if(file_stack != NULL)
         return file_stack->ch;
     else
-        return EOF;
+        return END_OF_INPUT;
 }
 
 /**
@@ -93,32 +98,21 @@ int get_char() {
 int consume_char() {
 
     if(file_stack != NULL) {
-        if(file_stack->ch == '\n') {
+        if(file_stack->ch == END_OF_FILE)
+            return END_OF_FILE;
+        else if(file_stack->ch == '\n') {
             file_stack->line_no++;
             file_stack->col_no = 1;
         }
         else
             file_stack->col_no++;
 
-        if(file_stack->fp != NULL) {
-            file_stack->ch = fgetc(file_stack->fp);
-            if(file_stack->ch == EOF) {
-                fclose(file_stack->fp);
-                if(file_stack->next == NULL)
-                    file_stack->fp = NULL;
-                else {
-                    struct _file_ptr_* tmp = file_stack;
-                    file_stack = tmp->next;
-                    destroy_string(tmp->fname);
-                    _FREE(tmp);
-                }
-            }
-        }
-
+        // note that END_OF_FILE is equal to EOF
+        file_stack->ch = fgetc(file_stack->fp);
         return file_stack->ch;
     }
     else
-        return EOF;
+        return END_OF_INPUT;
 }
 
 /**

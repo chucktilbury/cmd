@@ -245,8 +245,11 @@ HashResult remove_hashtable(HashTable* tab, const char* key);
 //-------------------------------------------------------------
 // fileio.c
 //-------------------------------------------------------------
-// The file stack for input files is implicitly defined.
-void open_input_file(const char* fname);
+#define END_OF_FILE -1
+#define END_OF_INPUT -2
+
+void push_input_file(const char* fname);
+void pop_input_file();
 int get_char();
 int consume_char();
 
@@ -429,6 +432,7 @@ extern _ExceptionState _exception_state;
 #define EXCEPTION_NUM _exception_number
 
 typedef enum {
+    GENERIC_ERROR,
     MEMORY_ERROR,
     FILE_ERROR,
     LIST_ERROR,
