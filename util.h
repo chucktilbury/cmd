@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 
 //----------------------------------------------
 // mem.c

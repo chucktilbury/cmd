@@ -56,14 +56,19 @@ void pop_input_file() {
  */
 void push_input_file(const char* fname) {
 
-    FILE* fp = fopen(fname, "r");
+    const char* path = realpath(fname, NULL);
+    if(path == NULL)
+        RAISE(FILE_ERROR, "File Error: trace path of input file: %s: %s\n", fname,
+              strerror(errno));
+
+    FILE* fp = fopen(path, "r");
     if(fp == NULL)
         RAISE(FILE_ERROR, "File Error: cannot open input file: %s: %s\n", fname,
               strerror(errno));
 
     struct _file_ptr_* ptr = _ALLOC_T(struct _file_ptr_);
     ptr->fp = fp;
-    ptr->fname = create_string(fname);
+    ptr->fname = create_string(path);
     ptr->line_no = 1;
     ptr->col_no = 1;
     ptr->next = NULL;
